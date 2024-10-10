@@ -144,35 +144,29 @@ eval instant at 50m (rate((http_requests[25m])) * 25) * 60
   {group="production", instance="1", job="app-server"} 300
 
 
-# Unsupported by streaming engine.
-# eval instant at 50m http_requests{group="canary"} and http_requests{instance="0"}
-#	http_requests{group="canary", instance="0", job="api-server"} 300
-#	http_requests{group="canary", instance="0", job="app-server"} 700
+eval instant at 50m http_requests{group="canary"} and http_requests{instance="0"}
+	http_requests{group="canary", instance="0", job="api-server"} 300
+	http_requests{group="canary", instance="0", job="app-server"} 700
 
-# Unsupported by streaming engine.
-# eval instant at 50m (http_requests{group="canary"} + 1) and http_requests{instance="0"}
-#	{group="canary", instance="0", job="api-server"} 301
-#	{group="canary", instance="0", job="app-server"} 701
+eval instant at 50m (http_requests{group="canary"} + 1) and http_requests{instance="0"}
+	{group="canary", instance="0", job="api-server"} 301
+	{group="canary", instance="0", job="app-server"} 701
 
-# Unsupported by streaming engine.
-# eval instant at 50m (http_requests{group="canary"} + 1) and on(instance, job) http_requests{instance="0", group="production"}
-#	{group="canary", instance="0", job="api-server"} 301
-#	{group="canary", instance="0", job="app-server"} 701
+eval instant at 50m (http_requests{group="canary"} + 1) and on(instance, job) http_requests{instance="0", group="production"}
+	{group="canary", instance="0", job="api-server"} 301
+	{group="canary", instance="0", job="app-server"} 701
 
-# Unsupported by streaming engine.
-# eval instant at 50m (http_requests{group="canary"} + 1) and on(instance) http_requests{instance="0", group="production"}
-#	{group="canary", instance="0", job="api-server"} 301
-#	{group="canary", instance="0", job="app-server"} 701
+eval instant at 50m (http_requests{group="canary"} + 1) and on(instance) http_requests{instance="0", group="production"}
+	{group="canary", instance="0", job="api-server"} 301
+	{group="canary", instance="0", job="app-server"} 701
 
-# Unsupported by streaming engine.
-# eval instant at 50m (http_requests{group="canary"} + 1) and ignoring(group) http_requests{instance="0", group="production"}
-#	{group="canary", instance="0", job="api-server"} 301
-#	{group="canary", instance="0", job="app-server"} 701
+eval instant at 50m (http_requests{group="canary"} + 1) and ignoring(group) http_requests{instance="0", group="production"}
+	{group="canary", instance="0", job="api-server"} 301
+	{group="canary", instance="0", job="app-server"} 701
 
-# Unsupported by streaming engine.
-# eval instant at 50m (http_requests{group="canary"} + 1) and ignoring(group, job) http_requests{instance="0", group="production"}
-#	{group="canary", instance="0", job="api-server"} 301
-#	{group="canary", instance="0", job="app-server"} 701
+eval instant at 50m (http_requests{group="canary"} + 1) and ignoring(group, job) http_requests{instance="0", group="production"}
+	{group="canary", instance="0", job="api-server"} 301
+	{group="canary", instance="0", job="app-server"} 701
 
 # Unsupported by streaming engine.
 # eval instant at 50m http_requests{group="canary"} or http_requests{group="production"}
@@ -216,18 +210,15 @@ eval instant at 50m (rate((http_requests[25m])) * 25) * 60
 #	vector_matching_a{l="x"} 10
 #	vector_matching_a{l="y"} 20
 
-# Unsupported by streaming engine.
-# eval instant at 50m http_requests{group="canary"} unless http_requests{instance="0"}
-#	http_requests{group="canary", instance="1", job="api-server"} 400
-#	http_requests{group="canary", instance="1", job="app-server"} 800
+eval instant at 50m http_requests{group="canary"} unless http_requests{instance="0"}
+	http_requests{group="canary", instance="1", job="api-server"} 400
+	http_requests{group="canary", instance="1", job="app-server"} 800
 
-# Unsupported by streaming engine.
-# eval instant at 50m http_requests{group="canary"} unless on(job) http_requests{instance="0"}
+eval instant at 50m http_requests{group="canary"} unless on(job) http_requests{instance="0"}
 
-# Unsupported by streaming engine.
-# eval instant at 50m http_requests{group="canary"} unless on(job, instance) http_requests{instance="0"}
-#	http_requests{group="canary", instance="1", job="api-server"} 400
-#	http_requests{group="canary", instance="1", job="app-server"} 800
+eval instant at 50m http_requests{group="canary"} unless on(job, instance) http_requests{instance="0"}
+	http_requests{group="canary", instance="1", job="api-server"} 400
+	http_requests{group="canary", instance="1", job="app-server"} 800
 
 eval instant at 50m http_requests{group="canary"} / on(instance,job) http_requests{group="production"}
 	{instance="0", job="api-server"} 3
@@ -235,13 +226,11 @@ eval instant at 50m http_requests{group="canary"} / on(instance,job) http_reques
 	{instance="1", job="api-server"} 2
 	{instance="1", job="app-server"} 1.3333333333333333
 
-# Unsupported by streaming engine.
-# eval instant at 50m http_requests{group="canary"} unless ignoring(group, instance) http_requests{instance="0"}
+eval instant at 50m http_requests{group="canary"} unless ignoring(group, instance) http_requests{instance="0"}
 
-# Unsupported by streaming engine.
-# eval instant at 50m http_requests{group="canary"} unless ignoring(group) http_requests{instance="0"}
-# 	http_requests{group="canary", instance="1", job="api-server"} 400
-# 	http_requests{group="canary", instance="1", job="app-server"} 800
+eval instant at 50m http_requests{group="canary"} unless ignoring(group) http_requests{instance="0"}
+	http_requests{group="canary", instance="1", job="api-server"} 400
+	http_requests{group="canary", instance="1", job="app-server"} 800
 
 eval instant at 50m http_requests{group="canary"} / ignoring(group) http_requests{group="production"}
 	{instance="0", job="api-server"} 3
@@ -250,76 +239,63 @@ eval instant at 50m http_requests{group="canary"} / ignoring(group) http_request
 	{instance="1", job="app-server"} 1.3333333333333333
 
 # https://github.com/prometheus/prometheus/issues/1489
-# Unsupported by streaming engine.
-# eval instant at 50m http_requests AND ON (dummy) vector(1)
-#	http_requests{group="canary", instance="0", job="api-server"} 300
-#	http_requests{group="canary", instance="0", job="app-server"} 700
-#	http_requests{group="canary", instance="1", job="api-server"} 400
-#	http_requests{group="canary", instance="1", job="app-server"} 800
-#	http_requests{group="production", instance="0", job="api-server"} 100
-#	http_requests{group="production", instance="0", job="app-server"} 500
-#	http_requests{group="production", instance="1", job="api-server"} 200
-#	http_requests{group="production", instance="1", job="app-server"} 600
+eval instant at 50m http_requests AND ON (dummy) vector(1)
+	http_requests{group="canary", instance="0", job="api-server"} 300
+	http_requests{group="canary", instance="0", job="app-server"} 700
+	http_requests{group="canary", instance="1", job="api-server"} 400
+	http_requests{group="canary", instance="1", job="app-server"} 800
+	http_requests{group="production", instance="0", job="api-server"} 100
+	http_requests{group="production", instance="0", job="app-server"} 500
+	http_requests{group="production", instance="1", job="api-server"} 200
+	http_requests{group="production", instance="1", job="app-server"} 600
 
-# Unsupported by streaming engine.
-# eval instant at 50m http_requests AND IGNORING (group, instance, job) vector(1)
-# 	http_requests{group="canary", instance="0", job="api-server"} 300
-# 	http_requests{group="canary", instance="0", job="app-server"} 700
-# 	http_requests{group="canary", instance="1", job="api-server"} 400
-# 	http_requests{group="canary", instance="1", job="app-server"} 800
-# 	http_requests{group="production", instance="0", job="api-server"} 100
-# 	http_requests{group="production", instance="0", job="app-server"} 500
-# 	http_requests{group="production", instance="1", job="api-server"} 200
-# 	http_requests{group="production", instance="1", job="app-server"} 600
+eval instant at 50m http_requests AND IGNORING (group, instance, job) vector(1)
+	http_requests{group="canary", instance="0", job="api-server"} 300
+	http_requests{group="canary", instance="0", job="app-server"} 700
+	http_requests{group="canary", instance="1", job="api-server"} 400
+	http_requests{group="canary", instance="1", job="app-server"} 800
+	http_requests{group="production", instance="0", job="api-server"} 100
+	http_requests{group="production", instance="0", job="app-server"} 500
+	http_requests{group="production", instance="1", job="api-server"} 200
+	http_requests{group="production", instance="1", job="app-server"} 600
 
 
 # Comparisons.
-# Unsupported by streaming engine.
-# eval instant at 50m SUM(http_requests) BY (job) > 1000
-# 	{job="app-server"} 2600
+eval instant at 50m SUM(http_requests) BY (job) > 1000
+	{job="app-server"} 2600
 
-# Unsupported by streaming engine.
-# eval instant at 50m 1000 < SUM(http_requests) BY (job)
-# 	{job="app-server"} 2600
+eval instant at 50m 1000 < SUM(http_requests) BY (job)
+	{job="app-server"} 2600
 
-# Unsupported by streaming engine.
-# eval instant at 50m SUM(http_requests) BY (job) <= 1000
-# 	{job="api-server"} 1000
+eval instant at 50m SUM(http_requests) BY (job) <= 1000
+	{job="api-server"} 1000
 
-# Unsupported by streaming engine.
-# eval instant at 50m SUM(http_requests) BY (job) != 1000
-# 	{job="app-server"} 2600
+eval instant at 50m SUM(http_requests) BY (job) != 1000
+	{job="app-server"} 2600
 
-# Unsupported by streaming engine.
-# eval instant at 50m SUM(http_requests) BY (job) == 1000
-# 	{job="api-server"} 1000
+eval instant at 50m SUM(http_requests) BY (job) == 1000
+	{job="api-server"} 1000
 
-# Unsupported by streaming engine.
-# eval instant at 50m SUM(http_requests) BY (job) == bool 1000
-# 	{job="api-server"} 1
-# 	{job="app-server"} 0
+eval instant at 50m SUM(http_requests) BY (job) == bool 1000
+	{job="api-server"} 1
+	{job="app-server"} 0
 
-# Unsupported by streaming engine.
-# eval instant at 50m SUM(http_requests) BY (job) == bool SUM(http_requests) BY (job)
-# 	{job="api-server"} 1
-# 	{job="app-server"} 1
+eval instant at 50m SUM(http_requests) BY (job) == bool SUM(http_requests) BY (job)
+	{job="api-server"} 1
+	{job="app-server"} 1
 
-# Unsupported by streaming engine.
-# eval instant at 50m SUM(http_requests) BY (job) != bool SUM(http_requests) BY (job)
-# 	{job="api-server"} 0
-# 	{job="app-server"} 0
+eval instant at 50m SUM(http_requests) BY (job) != bool SUM(http_requests) BY (job)
+	{job="api-server"} 0
+	{job="app-server"} 0
 
-# Unsupported by streaming engine.
-# eval instant at 50m 0 == bool 1
-# 	0
+eval instant at 50m 0 == bool 1
+	0
 
-# Unsupported by streaming engine.
-# eval instant at 50m 1 == bool 1
-# 	1
+eval instant at 50m 1 == bool 1
+	1
 
-# Unsupported by streaming engine.
-# eval instant at 50m http_requests{job="api-server", instance="0", group="production"} == bool 100
-# 	{job="api-server", instance="0", group="production"} 1
+eval instant at 50m http_requests{job="api-server", instance="0", group="production"} == bool 100
+	{job="api-server", instance="0", group="production"} 1
 
 # group_left/group_right.
 
@@ -507,20 +483,16 @@ load 5m
     test_total{instance="localhost"} 50
     test_smaller{instance="localhost"} 10
 
-# Unsupported by streaming engine.
-# eval instant at 5m test_total > bool test_smaller
-#     {instance="localhost"} 1
+eval instant at 5m test_total > bool test_smaller
+    {instance="localhost"} 1
 
-# Unsupported by streaming engine.
-# eval instant at 5m test_total > test_smaller
-#     test_total{instance="localhost"} 50
+eval instant at 5m test_total > test_smaller
+    test_total{instance="localhost"} 50
 
-# Unsupported by streaming engine.
-# eval instant at 5m test_total < bool test_smaller
-#     {instance="localhost"} 0
+eval instant at 5m test_total < bool test_smaller
+    {instance="localhost"} 0
 
-# Unsupported by streaming engine.
-# eval instant at 5m test_total < test_smaller
+eval instant at 5m test_total < test_smaller
 
 clear
 

@@ -130,7 +130,7 @@ func (s *splitInstantQueryByIntervalMiddleware) Do(ctx context.Context, req Metr
 	if err != nil {
 		level.Warn(spanLog).Log("msg", "failed to parse query", "err", err)
 		s.metrics.splittingSkipped.WithLabelValues(skippedReasonParsingFailed).Inc()
-		return nil, apierror.New(apierror.TypeBadData, decorateWithParamName(err, "query").Error())
+		return nil, apierror.New(apierror.TypeBadData, DecorateWithParamName(err, "query").Error())
 	}
 
 	instantSplitQuery, err := mapper.Map(expr)
@@ -180,8 +180,8 @@ func (s *splitInstantQueryByIntervalMiddleware) Do(ctx context.Context, req Metr
 		return nil, err
 	}
 
-	annotationAccumulator := newAnnotationAccumulator()
-	shardedQueryable := newShardedQueryable(req, annotationAccumulator, s.next)
+	annotationAccumulator := NewAnnotationAccumulator()
+	shardedQueryable := NewShardedQueryable(req, annotationAccumulator, s.next, nil)
 
 	qry, err := newQuery(ctx, req, s.engine, lazyquery.NewLazyQueryable(shardedQueryable))
 	if err != nil {
@@ -202,9 +202,11 @@ func (s *splitInstantQueryByIntervalMiddleware) Do(ctx context.Context, req Metr
 	warn, info := res.Warnings.AsStrings("", 0, 0)
 
 	// Add any annotations returned by the sharded queries, and remove any duplicates.
+	// We remove any position information for the same reason as above: the position information
+	// relates to the rewritten expression sent to queriers, not the original expression provided by the user.
 	accumulatedWarnings, accumulatedInfos := annotationAccumulator.getAll()
-	warn = append(warn, accumulatedWarnings...)
-	info = append(info, accumulatedInfos...)
+	warn = append(warn, removeAllAnnotationPositionInformation(accumulatedWarnings)...)
+	info = append(info, removeAllAnnotationPositionInformation(accumulatedInfos)...)
 	warn = removeDuplicates(warn)
 	info = removeDuplicates(info)
 

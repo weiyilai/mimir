@@ -18,22 +18,12 @@ type EngineOpts struct {
 }
 
 type FeatureToggles struct {
-	EnableAggregationOperations bool `yaml:"enable_aggregation_operations" category:"experimental"`
-	EnableBinaryOperations      bool `yaml:"enable_binary_operations" category:"experimental"`
-	EnableOffsetModifier        bool `yaml:"enable_offset_modifier" category:"experimental"`
-	EnableOverTimeFunctions     bool `yaml:"enable_over_time_functions" category:"experimental"`
-	EnableScalars               bool `yaml:"enable_scalars" category:"experimental"`
-	EnableUnaryNegation         bool `yaml:"enable_unary_negation" category:"experimental"`
-}
-
-var overTimeFunctionNames = []string{
-	"avg_over_time",
-	"count_over_time",
-	"last_over_time",
-	"max_over_time",
-	"min_over_time",
-	"present_over_time",
-	"sum_over_time",
+	EnableAggregationOperations                  bool `yaml:"enable_aggregation_operations" category:"experimental"`
+	EnableVectorVectorBinaryComparisonOperations bool `yaml:"enable_vector_vector_binary_comparison_operations" category:"experimental"`
+	EnableVectorScalarBinaryComparisonOperations bool `yaml:"enable_vector_scalar_binary_comparison_operations" category:"experimental"`
+	EnableScalarScalarBinaryComparisonOperations bool `yaml:"enable_scalar_scalar_binary_comparison_operations" category:"experimental"`
+	EnableBinaryLogicalOperations                bool `yaml:"enable_binary_logical_operations" category:"experimental"`
+	EnableScalars                                bool `yaml:"enable_scalars" category:"experimental"`
 }
 
 // EnableAllFeatures enables all features supported by MQE, including experimental or incomplete features.
@@ -49,9 +39,9 @@ var EnableAllFeatures = FeatureToggles{
 
 func (t *FeatureToggles) RegisterFlags(f *flag.FlagSet) {
 	f.BoolVar(&t.EnableAggregationOperations, "querier.mimir-query-engine.enable-aggregation-operations", true, "Enable support for aggregation operations in Mimir's query engine. Only applies if the Mimir query engine is in use.")
-	f.BoolVar(&t.EnableBinaryOperations, "querier.mimir-query-engine.enable-binary-operations", true, "Enable support for binary operations in Mimir's query engine. Only applies if the Mimir query engine is in use.")
-	f.BoolVar(&t.EnableOffsetModifier, "querier.mimir-query-engine.enable-offset-modifier", true, "Enable support for offset modifier in Mimir's query engine. Only applies if the Mimir query engine is in use.")
-	f.BoolVar(&t.EnableOverTimeFunctions, "querier.mimir-query-engine.enable-over-time-functions", true, "Enable support for ..._over_time functions in Mimir's query engine. Only applies if the Mimir query engine is in use.")
+	f.BoolVar(&t.EnableVectorVectorBinaryComparisonOperations, "querier.mimir-query-engine.enable-vector-vector-binary-comparison-operations", true, "Enable support for binary comparison operations between two vectors in Mimir's query engine. Only applies if the Mimir query engine is in use.")
+	f.BoolVar(&t.EnableVectorScalarBinaryComparisonOperations, "querier.mimir-query-engine.enable-vector-scalar-binary-comparison-operations", true, "Enable support for binary comparison operations between a vector and a scalar in Mimir's query engine. Only applies if the Mimir query engine is in use.")
+	f.BoolVar(&t.EnableScalarScalarBinaryComparisonOperations, "querier.mimir-query-engine.enable-scalar-scalar-binary-comparison-operations", true, "Enable support for binary comparison operations between two scalars in Mimir's query engine. Only applies if the Mimir query engine is in use.")
+	f.BoolVar(&t.EnableBinaryLogicalOperations, "querier.mimir-query-engine.enable-binary-logical-operations", true, "Enable support for binary logical operations in Mimir's query engine. Only applies if the Mimir query engine is in use.")
 	f.BoolVar(&t.EnableScalars, "querier.mimir-query-engine.enable-scalars", true, "Enable support for scalars in Mimir's query engine. Only applies if the Mimir query engine is in use.")
-	f.BoolVar(&t.EnableUnaryNegation, "querier.mimir-query-engine.enable-unary-negation", true, "Enable support for unary negation in Mimir's query engine. Only applies if the Mimir query engine is in use.")
 }

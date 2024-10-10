@@ -948,11 +948,6 @@ instance_limits:
 # CLI flag: -distributor.write-requests-buffer-pooling-enabled
 [write_requests_buffer_pooling_enabled: <boolean> | default = true]
 
-# (deprecated) When enabled, in-flight write requests limit is checked as soon
-# as the gRPC request is received, before the request is decoded and parsed.
-# CLI flag: -distributor.limit-inflight-requests-using-grpc-method-limiter
-[limit_inflight_requests_using_grpc_method_limiter: <boolean> | default = true]
-
 # (advanced) Number of pre-allocated workers used to forward push requests to
 # the ingesters. If 0, no workers will be used and a new goroutine will be
 # spawned for each ingester push request. If not enough workers available, new
@@ -1251,11 +1246,6 @@ instance_limits:
 # CLI flag: -ingester.log-utilization-based-limiter-cpu-samples
 [log_utilization_based_limiter_cpu_samples: <boolean> | default = false]
 
-# (deprecated) When enabled, in-flight write requests limit is checked as soon
-# as the gRPC request is received, before the request is decoded and parsed.
-# CLI flag: -ingester.limit-inflight-requests-using-grpc-method-limiter
-[limit_inflight_requests_using_grpc_method_limiter: <boolean> | default = true]
-
 # (advanced) Each error will be logged once in this many times. Use 0 to log all
 # of them.
 # CLI flag: -ingester.error-sample-rate
@@ -1364,10 +1354,6 @@ The `querier` block configures the querier.
 # query-store-after'.
 # CLI flag: -querier.query-store-after
 [query_store_after: <duration> | default = 12h]
-
-# (deprecated) Maximum duration into the future you can query. 0 to disable.
-# CLI flag: -querier.max-query-into-future
-[max_query_into_future: <duration> | default = 10m]
 
 store_gateway_client:
   # (advanced) Enable TLS for gRPC client connecting to store-gateway.
@@ -1518,30 +1504,33 @@ mimir_query_engine:
   # CLI flag: -querier.mimir-query-engine.enable-aggregation-operations
   [enable_aggregation_operations: <boolean> | default = true]
 
-  # (experimental) Enable support for binary operations in Mimir's query engine.
-  # Only applies if the Mimir query engine is in use.
-  # CLI flag: -querier.mimir-query-engine.enable-binary-operations
-  [enable_binary_operations: <boolean> | default = true]
+  # (experimental) Enable support for binary comparison operations between two
+  # vectors in Mimir's query engine. Only applies if the Mimir query engine is
+  # in use.
+  # CLI flag: -querier.mimir-query-engine.enable-vector-vector-binary-comparison-operations
+  [enable_vector_vector_binary_comparison_operations: <boolean> | default = true]
 
-  # (experimental) Enable support for offset modifier in Mimir's query engine.
-  # Only applies if the Mimir query engine is in use.
-  # CLI flag: -querier.mimir-query-engine.enable-offset-modifier
-  [enable_offset_modifier: <boolean> | default = true]
+  # (experimental) Enable support for binary comparison operations between a
+  # vector and a scalar in Mimir's query engine. Only applies if the Mimir query
+  # engine is in use.
+  # CLI flag: -querier.mimir-query-engine.enable-vector-scalar-binary-comparison-operations
+  [enable_vector_scalar_binary_comparison_operations: <boolean> | default = true]
 
-  # (experimental) Enable support for ..._over_time functions in Mimir's query
+  # (experimental) Enable support for binary comparison operations between two
+  # scalars in Mimir's query engine. Only applies if the Mimir query engine is
+  # in use.
+  # CLI flag: -querier.mimir-query-engine.enable-scalar-scalar-binary-comparison-operations
+  [enable_scalar_scalar_binary_comparison_operations: <boolean> | default = true]
+
+  # (experimental) Enable support for binary logical operations in Mimir's query
   # engine. Only applies if the Mimir query engine is in use.
-  # CLI flag: -querier.mimir-query-engine.enable-over-time-functions
-  [enable_over_time_functions: <boolean> | default = true]
+  # CLI flag: -querier.mimir-query-engine.enable-binary-logical-operations
+  [enable_binary_logical_operations: <boolean> | default = true]
 
   # (experimental) Enable support for scalars in Mimir's query engine. Only
   # applies if the Mimir query engine is in use.
   # CLI flag: -querier.mimir-query-engine.enable-scalars
   [enable_scalars: <boolean> | default = true]
-
-  # (experimental) Enable support for unary negation in Mimir's query engine.
-  # Only applies if the Mimir query engine is in use.
-  # CLI flag: -querier.mimir-query-engine.enable-unary-negation
-  [enable_unary_negation: <boolean> | default = true]
 ```
 
 ### frontend
@@ -1658,6 +1647,10 @@ results_cache:
 # CLI flag: -query-frontend.cache-results
 [cache_results: <boolean> | default = false]
 
+# (experimental) Cache non-transient errors from queries.
+# CLI flag: -query-frontend.cache-errors
+[cache_errors: <boolean> | default = false]
+
 # (advanced) Maximum number of retries for a single request; beyond this, the
 # downstream error is returned.
 # CLI flag: -query-frontend.max-retries-per-request
@@ -1720,8 +1713,7 @@ The `query_scheduler` block configures the query-scheduler.
 # (experimental) When enabled, the query scheduler primarily prioritizes
 # dequeuing fairly from queue components and secondarily prioritizes dequeuing
 # fairly across tenants. When disabled, the query scheduler primarily
-# prioritizes tenant fairness. You must enable the
-# `query-scheduler.use-multi-algorithm-query-queue` setting to use this flag.
+# prioritizes tenant fairness.
 # CLI flag: -query-scheduler.prioritize-query-components
 [prioritize_query_components: <boolean> | default = false]
 
@@ -2337,7 +2329,7 @@ alertmanager_client:
   [max_send_msg_size: <int> | default = 104857600]
 
   # (advanced) Use compression when sending messages. Supported values are:
-  # 'gzip', 'snappy' and '' (disable compression)
+  # 'gzip', 'snappy', 's2' and '' (disable compression)
   # CLI flag: -alertmanager.alertmanager-client.grpc-compression
   [grpc_compression: <string> | default = ""]
 
@@ -2480,16 +2472,8 @@ alertmanager_client:
 # matchers for routes and inhibition rules, in silences, and in the labels for
 # alerts. It is recommended that all tenants run the `migrate-utf8` command in
 # mimirtool before enabling this mode. Otherwise, some tenant configurations
-# might fail to load. To identify tenants with incompatible configurations,
-# search Mimir server logs for lines containing `Alertmanager is moving to a new
-# parser for labels and matchers, and this input is incompatible`. To find
-# tenant configurations that are valid but contain ambiguous matchers, search
-# for log lines containing `Matchers input has disagreement`. Each log line
-# includes the invalid input, a suggestion on how to fix the input (excluding
-# ambiguous matchers, as these require manual correction), and the ID of the
-# affected tenant. You must run Mimir with debug-level logging enabled.
-# Otherwise, these lines aren't logged. For more information, refer to
-# https://prometheus.io/docs/alerting/latest/configuration/#label-matchers.
+# might fail to load. For more information, refer to [Enable
+# UTF-8](https://grafana.com/docs/mimir/<MIMIR_VERSION>/references/architecture/components/alertmanager/#enable-utf-8).
 # Enabling and then disabling UTF-8 strict mode can break existing Alertmanager
 # configurations if tenants added UTF-8 characters to their Alertmanager
 # configuration while it was enabled.
@@ -2600,7 +2584,7 @@ The `grpc_client` block configures the gRPC client used to communicate between t
 [max_send_msg_size: <int> | default = 104857600]
 
 # (advanced) Use compression when sending messages. Supported values are:
-# 'gzip', 'snappy' and '' (disable compression)
+# 'gzip', 'snappy', 's2' and '' (disable compression)
 # CLI flag: -<prefix>.grpc-compression
 [grpc_compression: <string> | default = ""]
 
@@ -3302,6 +3286,13 @@ The `limits` block configures default and per-tenant limits imposed by component
 # CLI flag: -ingester.native-histograms-ingestion-enabled
 [native_histograms_ingestion_enabled: <boolean> | default = false]
 
+# (experimental) Enable experimental out-of-order native histogram ingestion.
+# This only takes effect if the `-ingester.out-of-order-time-window` value is
+# greater than zero and if `-ingester.native-histograms-ingestion-enabled =
+# true`
+# CLI flag: -ingester.ooo-native-histograms-ingestion-enabled
+[ooo_native_histograms_ingestion_enabled: <boolean> | default = false]
+
 # (advanced) Additional custom trackers for active metrics. If there are active
 # series matching a provided matcher (map value), the count will be exposed in
 # the custom trackers metric labeled using the tracker name (map key). Zero
@@ -3472,6 +3463,10 @@ The `limits` block configures default and per-tenant limits imposed by component
 # The value 0 disables the cache.
 # CLI flag: -query-frontend.results-cache-ttl-for-labels-query
 [results_cache_ttl_for_labels_query: <duration> | default = 0s]
+
+# (experimental) Time to live duration for cached non-transient errors
+# CLI flag: -query-frontend.results-cache-ttl-for-errors
+[results_cache_ttl_for_errors: <duration> | default = 5m]
 
 # (advanced) Cache requests that are not step-aligned.
 # CLI flag: -query-frontend.cache-unaligned-requests
@@ -3674,10 +3669,18 @@ The `limits` block configures default and per-tenant limits imposed by component
 # CLI flag: -alertmanager.notification-rate-limit-per-integration
 [alertmanager_notification_rate_limit_per_integration: <map of string to float64> | default = {}]
 
-# Maximum size of configuration file for Alertmanager that tenant can upload via
-# Alertmanager API. 0 = no limit.
+# Maximum size of the Grafana Alertmanager configuration for a tenant. 0 = no
+# limit.
+# CLI flag: -alertmanager.max-grafana-config-size-bytes
+[alertmanager_max_grafana_config_size_bytes: <int> | default = 0]
+
+# Maximum size of the Alertmanager configuration for a tenant. 0 = no limit.
 # CLI flag: -alertmanager.max-config-size-bytes
 [alertmanager_max_config_size_bytes: <int> | default = 0]
+
+# Maximum size of the Grafana Alertmanager state for a tenant. 0 = no limit.
+# CLI flag: -alertmanager.max-grafana-state-size-bytes
+[alertmanager_max_grafana_state_size_bytes: <int> | default = 0]
 
 # Maximum number of silences, including expired silences, that a tenant can have
 # at once. 0 = no limit.
@@ -3859,6 +3862,48 @@ kafka:
   # until strong read consistency is enforced. 0 to disable the timeout.
   # CLI flag: -ingest-storage.kafka.wait-strong-read-consistency-timeout
   [wait_strong_read_consistency_timeout: <duration> | default = 20s]
+
+  # The number of concurrent fetch requests that the ingester makes when reading
+  # data from Kafka during startup. 0 to disable.
+  # CLI flag: -ingest-storage.kafka.startup-fetch-concurrency
+  [startup_fetch_concurrency: <int> | default = 0]
+
+  # The number of records per fetch request that the ingester makes when reading
+  # data from Kafka during startup. Depends on
+  # ingest-storage.kafka.startup-fetch-concurrency being greater than 0.
+  # CLI flag: -ingest-storage.kafka.startup-records-per-fetch
+  [startup_records_per_fetch: <int> | default = 2500]
+
+  # The number of concurrent fetch requests that the ingester makes when reading
+  # data continuously from Kafka after startup. Is disabled unless
+  # ingest-storage.kafka.startup-fetch-concurrency is greater than 0. 0 to
+  # disable.
+  # CLI flag: -ingest-storage.kafka.ongoing-fetch-concurrency
+  [ongoing_fetch_concurrency: <int> | default = 0]
+
+  # The number of records per fetch request that the ingester makes when reading
+  # data continuously from Kafka after startup. Depends on
+  # ingest-storage.kafka.ongoing-fetch-concurrency being greater than 0.
+  # CLI flag: -ingest-storage.kafka.ongoing-records-per-fetch
+  [ongoing_records_per_fetch: <int> | default = 30]
+
+  # When enabled, the fetch request MaxBytes field is computed using the
+  # compressed size of previous records. When disabled, MaxBytes is computed
+  # using uncompressed bytes. Different Kafka implementations interpret MaxBytes
+  # differently.
+  # CLI flag: -ingest-storage.kafka.use-compressed-bytes-as-fetch-max-bytes
+  [use_compressed_bytes_as_fetch_max_bytes: <boolean> | default = true]
+
+  # The number of concurrent ingestion streams to the TSDB head. Every tenant
+  # has their own set of streams. 0 to disable.
+  # CLI flag: -ingest-storage.kafka.ingestion-concurrency
+  [ingestion_concurrency: <int> | default = 0]
+
+  # The number of timeseries to batch together before ingesting into TSDB. This
+  # is only used when -ingest-storage.kafka.ingestion-concurrency is greater
+  # than 0.
+  # CLI flag: -ingest-storage.kafka.ingestion-concurrency-batch-size
+  [ingestion_concurrency_batch_size: <int> | default = 150]
 
 migration:
   # When both this option and ingest storage are enabled, distributors write to
@@ -4867,111 +4912,113 @@ The `redis` block configures the Redis-based caching backend. The supported CLI 
 &nbsp;
 
 ```yaml
-# Redis Server or Cluster configuration endpoint to use for caching. A
-# comma-separated list of endpoints for Redis Cluster or Redis Sentinel.
+# (deprecated) Redis Server or Cluster configuration endpoint to use for
+# caching. A comma-separated list of endpoints for Redis Cluster or Redis
+# Sentinel.
 # CLI flag: -<prefix>.redis.endpoint
 [endpoint: <string> | default = ""]
 
-# Username to use when connecting to Redis.
+# (deprecated) Username to use when connecting to Redis.
 # CLI flag: -<prefix>.redis.username
 [username: <string> | default = ""]
 
-# Password to use when connecting to Redis.
+# (deprecated) Password to use when connecting to Redis.
 # CLI flag: -<prefix>.redis.password
 [password: <string> | default = ""]
 
-# Database index.
+# (deprecated) Database index.
 # CLI flag: -<prefix>.redis.db
 [db: <int> | default = 0]
 
-# (advanced) Redis Sentinel master name. An empty string for Redis Server or
+# (deprecated) Redis Sentinel master name. An empty string for Redis Server or
 # Redis Cluster.
 # CLI flag: -<prefix>.redis.master-name
 [master_name: <string> | default = ""]
 
-# (advanced) Client dial timeout.
+# (deprecated) Client dial timeout.
 # CLI flag: -<prefix>.redis.dial-timeout
 [dial_timeout: <duration> | default = 5s]
 
-# (advanced) Client read timeout.
+# (deprecated) Client read timeout.
 # CLI flag: -<prefix>.redis.read-timeout
 [read_timeout: <duration> | default = 3s]
 
-# (advanced) Client write timeout.
+# (deprecated) Client write timeout.
 # CLI flag: -<prefix>.redis.write-timeout
 [write_timeout: <duration> | default = 3s]
 
-# (advanced) Maximum number of connections in the pool.
+# (deprecated) Maximum number of connections in the pool.
 # CLI flag: -<prefix>.redis.connection-pool-size
 [connection_pool_size: <int> | default = 100]
 
-# (advanced) Maximum duration to wait to get a connection from pool.
+# (deprecated) Maximum duration to wait to get a connection from pool.
 # CLI flag: -<prefix>.redis.connection-pool-timeout
 [connection_pool_timeout: <duration> | default = 4s]
 
-# (advanced) Minimum number of idle connections.
+# (deprecated) Minimum number of idle connections.
 # CLI flag: -<prefix>.redis.min-idle-connections
 [min_idle_connections: <int> | default = 10]
 
-# (advanced) Amount of time after which client closes idle connections.
+# (deprecated) Amount of time after which client closes idle connections.
 # CLI flag: -<prefix>.redis.idle-timeout
 [idle_timeout: <duration> | default = 5m]
 
-# (advanced) Close connections older than this duration. If the value is zero,
+# (deprecated) Close connections older than this duration. If the value is zero,
 # then the pool does not close connections based on age.
 # CLI flag: -<prefix>.redis.max-connection-age
 [max_connection_age: <duration> | default = 0s]
 
-# (advanced) The maximum size of an item stored in Redis. Bigger items are not
+# (deprecated) The maximum size of an item stored in Redis. Bigger items are not
 # stored. If set to 0, no maximum size is enforced.
 # CLI flag: -<prefix>.redis.max-item-size
 [max_item_size: <int> | default = 16777216]
 
-# (advanced) The maximum number of concurrent asynchronous operations can occur.
+# (deprecated) The maximum number of concurrent asynchronous operations can
+# occur.
 # CLI flag: -<prefix>.redis.max-async-concurrency
 [max_async_concurrency: <int> | default = 50]
 
-# (advanced) The maximum number of enqueued asynchronous operations allowed.
+# (deprecated) The maximum number of enqueued asynchronous operations allowed.
 # CLI flag: -<prefix>.redis.max-async-buffer-size
 [max_async_buffer_size: <int> | default = 25000]
 
-# (advanced) The maximum number of concurrent connections running get
+# (deprecated) The maximum number of concurrent connections running get
 # operations. If set to 0, concurrency is unlimited.
 # CLI flag: -<prefix>.redis.max-get-multi-concurrency
 [max_get_multi_concurrency: <int> | default = 100]
 
-# (advanced) The maximum size per batch for mget operations.
+# (deprecated) The maximum size per batch for mget operations.
 # CLI flag: -<prefix>.redis.max-get-multi-batch-size
 [max_get_multi_batch_size: <int> | default = 100]
 
-# (advanced) Enable connecting to Redis with TLS.
+# (deprecated) Enable connecting to Redis with TLS.
 # CLI flag: -<prefix>.redis.tls-enabled
 [tls_enabled: <boolean> | default = false]
 
-# (advanced) Path to the client certificate, which will be used for
+# (deprecated) Path to the client certificate, which will be used for
 # authenticating with the server. Also requires the key path to be configured.
 # CLI flag: -<prefix>.redis.tls-cert-path
 [tls_cert_path: <string> | default = ""]
 
-# (advanced) Path to the key for the client certificate. Also requires the
+# (deprecated) Path to the key for the client certificate. Also requires the
 # client certificate to be configured.
 # CLI flag: -<prefix>.redis.tls-key-path
 [tls_key_path: <string> | default = ""]
 
-# (advanced) Path to the CA certificates to validate server certificate against.
-# If not set, the host's root CA certificates are used.
+# (deprecated) Path to the CA certificates to validate server certificate
+# against. If not set, the host's root CA certificates are used.
 # CLI flag: -<prefix>.redis.tls-ca-path
 [tls_ca_path: <string> | default = ""]
 
-# (advanced) Override the expected name on the server certificate.
+# (deprecated) Override the expected name on the server certificate.
 # CLI flag: -<prefix>.redis.tls-server-name
 [tls_server_name: <string> | default = ""]
 
-# (advanced) Skip validating server certificate.
+# (deprecated) Skip validating server certificate.
 # CLI flag: -<prefix>.redis.tls-insecure-skip-verify
 [tls_insecure_skip_verify: <boolean> | default = false]
 
-# (advanced) Override the default cipher suite list (separated by commas).
+# (deprecated) Override the default cipher suite list (separated by commas).
 # Allowed values:
 #
 # Secure Ciphers:
@@ -5005,7 +5052,7 @@ The `redis` block configures the Redis-based caching backend. The supported CLI 
 # CLI flag: -<prefix>.redis.tls-cipher-suites
 [tls_cipher_suites: <string> | default = ""]
 
-# (advanced) Override the default minimum TLS version. Allowed values:
+# (deprecated) Override the default minimum TLS version. Allowed values:
 # VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13
 # CLI flag: -<prefix>.redis.tls-min-version
 [tls_min_version: <string> | default = ""]

@@ -98,12 +98,11 @@ load 5m
 	http_requests{path="/bumms"}    1+10x10
 
 # Tests for increase().
-# Unsupported by streaming engine.
-# eval instant at 50m increase(http_requests[50m])
-# 	{path="/foo"}   100
-# 	{path="/bar"}    90
-# 	{path="/dings"} 100
-# 	{path="/bumms"} 100
+eval instant at 50m increase(http_requests[50m])
+	{path="/foo"}   100
+	{path="/bar"}    90
+	{path="/dings"} 100
+	{path="/bumms"} 100
 
 # "foo" and "bar" are already at value 0 at t=0, so no extrapolation
 # happens. "dings" has value 10 at t=0 and would reach 0 at t=-5m. The
@@ -112,12 +111,11 @@ load 5m
 # chosen. However, "bumms" has value 1 at t=0 and would reach 0 at
 # t=-30s. Here the extrapolation to t=-2m30s would reach a negative
 # value, and therefore the extrapolation happens only by 30s.
-# Unsupported by streaming engine.
-# eval instant at 50m increase(http_requests[100m])
-# 	{path="/foo"}   100
-# 	{path="/bar"}    90
-# 	{path="/dings"} 105
-# 	{path="/bumms"} 101
+eval instant at 50m increase(http_requests[100m])
+	{path="/foo"}   100
+	{path="/bar"}    90
+	{path="/dings"} 105
+	{path="/bumms"} 101
 
 clear
 
@@ -128,9 +126,8 @@ clear
 load 5m
 	http_requests{path="/foo"}	0 1 2 3 2 3 4
 
-# Unsupported by streaming engine.
-# eval instant at 30m increase(http_requests[30m])
-#     {path="/foo"} 7
+eval instant at 30m increase(http_requests[30m])
+    {path="/foo"} 7
 
 clear
 
@@ -310,66 +307,55 @@ load 5m
   testmetric{src="source-value-20",dst="original-destination-value"} 1
 
 # label_replace does a full-string match and replace.
-# Unsupported by streaming engine.
-# eval instant at 0m label_replace(testmetric, "dst", "destination-value-$1", "src", "source-value-(.*)")
-#   testmetric{src="source-value-10",dst="destination-value-10"} 0
-#   testmetric{src="source-value-20",dst="destination-value-20"} 1
+eval instant at 0m label_replace(testmetric, "dst", "destination-value-$1", "src", "source-value-(.*)")
+  testmetric{src="source-value-10",dst="destination-value-10"} 0
+  testmetric{src="source-value-20",dst="destination-value-20"} 1
 
 # label_replace does not do a sub-string match.
-# Unsupported by streaming engine.
-# eval instant at 0m label_replace(testmetric, "dst", "destination-value-$1", "src", "value-(.*)")
-#   testmetric{src="source-value-10",dst="original-destination-value"} 0
-#   testmetric{src="source-value-20",dst="original-destination-value"} 1
+eval instant at 0m label_replace(testmetric, "dst", "destination-value-$1", "src", "value-(.*)")
+  testmetric{src="source-value-10",dst="original-destination-value"} 0
+  testmetric{src="source-value-20",dst="original-destination-value"} 1
 
 # label_replace works with multiple capture groups.
-# Unsupported by streaming engine.
-# eval instant at 0m label_replace(testmetric, "dst", "$1-value-$2", "src", "(.*)-value-(.*)")
-#   testmetric{src="source-value-10",dst="source-value-10"} 0
-#   testmetric{src="source-value-20",dst="source-value-20"} 1
+eval instant at 0m label_replace(testmetric, "dst", "$1-value-$2", "src", "(.*)-value-(.*)")
+  testmetric{src="source-value-10",dst="source-value-10"} 0
+  testmetric{src="source-value-20",dst="source-value-20"} 1
 
 # label_replace does not overwrite the destination label if the source label
 # does not exist.
-# Unsupported by streaming engine.
-# eval instant at 0m label_replace(testmetric, "dst", "value-$1", "nonexistent-src", "source-value-(.*)")
-#   testmetric{src="source-value-10",dst="original-destination-value"} 0
-#   testmetric{src="source-value-20",dst="original-destination-value"} 1
+eval instant at 0m label_replace(testmetric, "dst", "value-$1", "nonexistent-src", "source-value-(.*)")
+  testmetric{src="source-value-10",dst="original-destination-value"} 0
+  testmetric{src="source-value-20",dst="original-destination-value"} 1
 
 # label_replace overwrites the destination label if the source label is empty,
 # but matched.
-# Unsupported by streaming engine.
-# eval instant at 0m label_replace(testmetric, "dst", "value-$1", "nonexistent-src", "(.*)")
-#   testmetric{src="source-value-10",dst="value-"} 0
-#   testmetric{src="source-value-20",dst="value-"} 1
+eval instant at 0m label_replace(testmetric, "dst", "value-$1", "nonexistent-src", "(.*)")
+  testmetric{src="source-value-10",dst="value-"} 0
+  testmetric{src="source-value-20",dst="value-"} 1
 
 # label_replace does not overwrite the destination label if the source label
 # is not matched.
-# Unsupported by streaming engine.
-# eval instant at 0m label_replace(testmetric, "dst", "value-$1", "src", "non-matching-regex")
-#   testmetric{src="source-value-10",dst="original-destination-value"} 0
-#   testmetric{src="source-value-20",dst="original-destination-value"} 1
+eval instant at 0m label_replace(testmetric, "dst", "value-$1", "src", "non-matching-regex")
+  testmetric{src="source-value-10",dst="original-destination-value"} 0
+  testmetric{src="source-value-20",dst="original-destination-value"} 1
 
-# Unsupported by streaming engine.
-# eval instant at 0m label_replace((((testmetric))), (("dst")), (("value-$1")), (("src")), (("non-matching-regex")))
-#   testmetric{src="source-value-10",dst="original-destination-value"} 0
-#   testmetric{src="source-value-20",dst="original-destination-value"} 1
+eval instant at 0m label_replace((((testmetric))), (("dst")), (("value-$1")), (("src")), (("non-matching-regex")))
+  testmetric{src="source-value-10",dst="original-destination-value"} 0
+  testmetric{src="source-value-20",dst="original-destination-value"} 1
 
 # label_replace drops labels that are set to empty values.
-# Unsupported by streaming engine.
-# eval instant at 0m label_replace(testmetric, "dst", "", "dst", ".*")
-#   testmetric{src="source-value-10"} 0
-#   testmetric{src="source-value-20"} 1
+eval instant at 0m label_replace(testmetric, "dst", "", "dst", ".*")
+  testmetric{src="source-value-10"} 0
+  testmetric{src="source-value-20"} 1
 
 # label_replace fails when the regex is invalid.
-# Unsupported by streaming engine.
-# eval_fail instant at 0m label_replace(testmetric, "dst", "value-$1", "src", "(.*")
+eval_fail instant at 0m label_replace(testmetric, "dst", "value-$1", "src", "(.*")
 
 # label_replace fails when the destination label name is not a valid Prometheus label name.
-# Unsupported by streaming engine.
-# eval_fail instant at 0m label_replace(testmetric, "invalid-label-name", "", "src", "(.*)")
+eval_fail instant at 0m label_replace(testmetric, "invalid-label-name", "", "src", "(.*)")
 
 # label_replace fails when there would be duplicated identical output label sets.
-# Unsupported by streaming engine.
-# eval_fail instant at 0m label_replace(testmetric, "src", "", "", "")
+eval_fail instant at 0m label_replace(testmetric, "src", "", "", "")
 
 clear
 

@@ -38,6 +38,7 @@ const (
 	cardinalityActiveNativeHistogramMetricsPathSuffix = "/api/v1/cardinality/active_native_histogram_metrics"
 	labelNamesPathSuffix                              = "/api/v1/labels"
 	remoteReadPathSuffix                              = "/api/v1/read"
+	seriesPathSuffix                                  = "/api/v1/series"
 
 	queryTypeInstant                      = "query"
 	queryTypeRange                        = "query_range"
@@ -58,6 +59,7 @@ type Config struct {
 	SplitQueriesByInterval   time.Duration `yaml:"split_queries_by_interval" category:"advanced"`
 	ResultsCacheConfig       `yaml:"results_cache"`
 	CacheResults             bool          `yaml:"cache_results"`
+	CacheErrors              bool          `yaml:"cache_errors" category:"experimental"`
 	MaxRetries               int           `yaml:"max_retries" category:"advanced"`
 	NotRunningTimeout        time.Duration `yaml:"not_running_timeout" category:"advanced"`
 	ShardedQueries           bool          `yaml:"parallelize_shardable_queries"`
@@ -87,6 +89,7 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 	f.DurationVar(&cfg.NotRunningTimeout, "query-frontend.not-running-timeout", 2*time.Second, "Maximum time to wait for the query-frontend to become ready before rejecting requests received before the frontend was ready. 0 to disable (i.e. fail immediately if a request is received while the frontend is still starting up)")
 	f.DurationVar(&cfg.SplitQueriesByInterval, "query-frontend.split-queries-by-interval", 24*time.Hour, "Split range queries by an interval and execute in parallel. You should use a multiple of 24 hours to optimize querying blocks. 0 to disable it.")
 	f.BoolVar(&cfg.CacheResults, "query-frontend.cache-results", false, "Cache query results.")
+	f.BoolVar(&cfg.CacheErrors, "query-frontend.cache-errors", false, "Cache non-transient errors from queries.")
 	f.BoolVar(&cfg.ShardedQueries, "query-frontend.parallelize-shardable-queries", false, "True to enable query sharding.")
 	f.BoolVar(&cfg.PrunedQueries, "query-frontend.prune-queries", false, "True to enable pruning dead code (eg. expressions that cannot produce any results) and simplifying expressions (eg. expressions that can be evaluated immediately) in queries.")
 	f.Uint64Var(&cfg.TargetSeriesPerShard, "query-frontend.query-sharding-target-series-per-shard", 0, "How many series a single sharded partial query should load at most. This is not a strict requirement guaranteed to be honoured by query sharding, but a hint given to the query sharding when the query execution is initially planned. 0 to disable cardinality-based hints.")
@@ -104,7 +107,7 @@ func (cfg *Config) Validate() error {
 		}
 	}
 
-	if cfg.CacheResults || cfg.cardinalityBasedShardingEnabled() {
+	if cfg.CacheResults || cfg.CacheErrors || cfg.cardinalityBasedShardingEnabled() {
 		if err := cfg.ResultsCacheConfig.Validate(); err != nil {
 			return errors.Wrap(err, "invalid query-frontend results cache config")
 		}
@@ -129,9 +132,22 @@ func (q HandlerFunc) Do(ctx context.Context, req MetricsQueryRequest) (Response,
 	return q(ctx, req)
 }
 
-// MetricsQueryHandler is like http.Handle, but specifically for Prometheus query and query_range calls.
+// MetricsQueryHandler is like http.Handler, but specifically for Prometheus query and query_range calls.
 type MetricsQueryHandler interface {
 	Do(context.Context, MetricsQueryRequest) (Response, error)
+}
+
+// LabelsHandlerFunc is like http.HandlerFunc, but for LabelsQueryHandler.
+type LabelsHandlerFunc func(context.Context, LabelsQueryRequest) (Response, error)
+
+// Do implements LabelsQueryHandler.
+func (q LabelsHandlerFunc) Do(ctx context.Context, req LabelsQueryRequest) (Response, error) {
+	return q(ctx, req)
+}
+
+// LabelsQueryHandler is like http.Handler, but specifically for Prometheus label names and values calls.
+type LabelsQueryHandler interface {
+	Do(context.Context, LabelsQueryRequest) (Response, error)
 }
 
 // MetricsQueryMiddlewareFunc is like http.HandlerFunc, but for MetricsQueryMiddleware.
@@ -243,14 +259,14 @@ func newQueryTripperware(
 		// It means that the first roundtrippers defined in this function will be the last to be
 		// executed.
 
-		queryrange := newLimitedParallelismRoundTripper(next, codec, limits, queryRangeMiddleware...)
-		instant := newLimitedParallelismRoundTripper(next, codec, limits, queryInstantMiddleware...)
-		remoteRead := newRemoteReadRoundTripper(next, remoteReadMiddleware...)
+		queryrange := NewLimitedParallelismRoundTripper(next, codec, limits, queryRangeMiddleware...)
+		instant := NewLimitedParallelismRoundTripper(next, codec, limits, queryInstantMiddleware...)
+		remoteRead := NewRemoteReadRoundTripper(next, remoteReadMiddleware...)
 
 		// Wrap next for cardinality, labels queries and all other queries.
 		// That attempts to parse "start" and "end" from the HTTP request and set them in the request's QueryDetails.
 		// range and instant queries have more accurate logic for query details.
-		next = newQueryDetailsStartEndRoundTripper(next)
+		next = NewQueryDetailsStartEndRoundTripper(next)
 		cardinality := next
 		activeSeries := next
 		activeNativeHistogramMetrics := next
@@ -336,6 +352,14 @@ func newQueryMiddlewares(
 		newInstrumentMiddleware("step_align", metrics),
 		newStepAlignMiddleware(limits, log, registerer),
 	)
+
+	if cfg.CacheResults && cfg.CacheErrors {
+		queryRangeMiddleware = append(
+			queryRangeMiddleware,
+			newInstrumentMiddleware("error_caching", metrics),
+			newErrorCachingMiddleware(cacheClient, limits, resultsCacheEnabledByOption, log, registerer),
+		)
+	}
 
 	// Inject the middleware to split requests by interval + results cache (if at least one of the two is enabled).
 	if cfg.SplitQueriesByInterval > 0 || cfg.CacheResults {
@@ -432,8 +456,8 @@ func newQueryMiddlewares(
 	return
 }
 
-// newQueryDetailsStartEndRoundTripper parses "start" and "end" parameters from the query and sets same fields in the QueryDetails in the context.
-func newQueryDetailsStartEndRoundTripper(next http.RoundTripper) http.RoundTripper {
+// NewQueryDetailsStartEndRoundTripper parses "start" and "end" parameters from the query and sets same fields in the QueryDetails in the context.
+func NewQueryDetailsStartEndRoundTripper(next http.RoundTripper) http.RoundTripper {
 	return RoundTripFunc(func(req *http.Request) (*http.Response, error) {
 		params, _ := util.ParseRequestFormWithoutConsumingBody(req)
 		if details := QueryDetailsFromContext(req.Context()); details != nil {
@@ -521,6 +545,10 @@ func IsLabelValuesQuery(path string) bool {
 
 func IsLabelsQuery(path string) bool {
 	return IsLabelNamesQuery(path) || IsLabelValuesQuery(path)
+}
+
+func IsSeriesQuery(path string) bool {
+	return strings.HasSuffix(path, seriesPathSuffix)
 }
 
 func IsActiveSeriesQuery(path string) bool {

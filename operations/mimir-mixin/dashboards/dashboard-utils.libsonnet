@@ -25,6 +25,7 @@ local utils = import 'mixin-utils/utils.libsonnet';
   ]),
 
   local sortAscending = 1,
+  local sortNaturalAscending = 7,
 
   _config:: error 'must provide _config',
 
@@ -124,7 +125,7 @@ local utils = import 'mixin-utils/utils.libsonnet';
                .addTemplate('namespace', $._config.dashboard_variables.namespace_query, '%s' % $._config.per_namespace_label, sort=sortAscending),
 
       addActiveUserSelectorTemplates()::
-        self.addTemplate('user', 'cortex_ingester_active_series{%s=~"$cluster", %s=~"$namespace"}' % [$._config.per_cluster_label, $._config.per_namespace_label], 'user', sort=sortAscending),
+        self.addTemplate('user', 'cortex_ingester_active_series{%s=~"$cluster", %s=~"$namespace"}' % [$._config.per_cluster_label, $._config.per_namespace_label], 'user', sort=sortNaturalAscending),
 
       addCustomTemplate(label, name, options, defaultIndex=0):: self {
         // Escape the comma because it's used a separator in the options list.
@@ -627,8 +628,8 @@ local utils = import 'mixin-utils/utils.libsonnet';
           max by (scaletargetref_name) (
             kube_horizontalpodautoscaler_spec_max_replicas{%(namespace_matcher)s, horizontalpodautoscaler=~"%(hpa_name)s"}
             # Add the scaletargetref_name label for readability
-            + on (%(cluster_labels)s, horizontalpodautoscaler) group_left (scaletargetref_name)
-              0*kube_horizontalpodautoscaler_info{%(namespace_matcher)s, horizontalpodautoscaler=~"%(hpa_name)s"}
+            * on (%(cluster_labels)s, horizontalpodautoscaler) group_left (scaletargetref_name)
+              group by (%(cluster_labels)s, horizontalpodautoscaler, scaletargetref_name) (kube_horizontalpodautoscaler_info{%(namespace_matcher)s, horizontalpodautoscaler=~"%(hpa_name)s"})
           )
         ||| % {
           namespace_matcher: $.namespaceMatcher(),
@@ -639,8 +640,8 @@ local utils = import 'mixin-utils/utils.libsonnet';
           max by (scaletargetref_name) (
             kube_horizontalpodautoscaler_status_current_replicas{%(namespace_matcher)s, horizontalpodautoscaler=~"%(hpa_name)s"}
             # Add the scaletargetref_name label for readability
-            + on (%(cluster_labels)s, horizontalpodautoscaler) group_left (scaletargetref_name)
-              0*kube_horizontalpodautoscaler_info{%(namespace_matcher)s, horizontalpodautoscaler=~"%(hpa_name)s"}
+            * on (%(cluster_labels)s, horizontalpodautoscaler) group_left (scaletargetref_name)
+              group by (%(cluster_labels)s, horizontalpodautoscaler, scaletargetref_name) (kube_horizontalpodautoscaler_info{%(namespace_matcher)s, horizontalpodautoscaler=~"%(hpa_name)s"})
           )
         ||| % {
           namespace_matcher: $.namespaceMatcher(),
@@ -651,8 +652,8 @@ local utils = import 'mixin-utils/utils.libsonnet';
           max by (scaletargetref_name) (
             kube_horizontalpodautoscaler_spec_min_replicas{%(namespace_matcher)s, horizontalpodautoscaler=~"%(hpa_name)s"}
             # Add the scaletargetref_name label for readability
-            + on (%(cluster_labels)s, horizontalpodautoscaler) group_left (scaletargetref_name)
-              0*kube_horizontalpodautoscaler_info{%(namespace_matcher)s, horizontalpodautoscaler=~"%(hpa_name)s"}
+            * on (%(cluster_labels)s, horizontalpodautoscaler) group_left (scaletargetref_name)
+              group by (%(cluster_labels)s, horizontalpodautoscaler, scaletargetref_name) (kube_horizontalpodautoscaler_info{%(namespace_matcher)s, horizontalpodautoscaler=~"%(hpa_name)s"})
           )
         ||| % {
           namespace_matcher: $.namespaceMatcher(),
@@ -700,18 +701,25 @@ local utils = import 'mixin-utils/utils.libsonnet';
       [
         |||
           sum by (scaler) (
-            label_replace(
-              keda_scaler_metrics_value{%(cluster_label)s=~"$cluster", exported_namespace=~"$namespace", scaler=~"%(scaler_selector)s"},
-              "namespace", "$1", "exported_namespace", "(.*)"
+            # Using `max by ()` so that series churn doesn't break the promQL join
+            max by (%(aggregation_labels)s, scaledObject, metric, scaler) (
+              label_replace(
+                keda_scaler_metrics_value{%(cluster_label)s=~"$cluster", exported_namespace=~"$namespace", scaler=~"%(scaler_selector)s"},
+                "namespace", "$1", "exported_namespace", "(.*)"
+              )
             )
             /
-            on(%(aggregation_labels)s, scaledObject, metric) group_left label_replace(
-              label_replace(
-                kube_horizontalpodautoscaler_spec_target_metric{%(namespace)s, horizontalpodautoscaler=~"%(hpa_name)s"},
-                "metric", "$1", "metric_name", "(.+)"
-              ),
-              "scaledObject", "$1", "horizontalpodautoscaler", "%(hpa_prefix)s(.*)"
-            )
+            on(%(aggregation_labels)s, scaledObject, metric) group_left
+              # Using `max by ()` so that series churn doesn't break the promQL join
+              max by (%(aggregation_labels)s, scaledObject, metric) (
+                label_replace(
+                  label_replace(
+                    kube_horizontalpodautoscaler_spec_target_metric{%(namespace)s, horizontalpodautoscaler=~"%(hpa_name)s"},
+                    "metric", "$1", "metric_name", "(.+)"
+                  ),
+                  "scaledObject", "$1", "horizontalpodautoscaler", "%(hpa_prefix)s(.*)"
+                )
+              )
           )
         ||| % {
           aggregation_labels: $._config.alert_aggregation_labels,
@@ -743,23 +751,34 @@ local utils = import 'mixin-utils/utils.libsonnet';
       [
         |||
           sum by (scaler) (
-            label_replace(
-              keda_scaler_metrics_value{%(cluster_label)s=~"$cluster", exported_namespace=~"$namespace", scaler=~"%(scaler_selector)s"},
-              "namespace", "$1", "exported_namespace", "(.*)"
+            # Using `max by ()` so that series churn doesn't break the promQL join
+            max by (%(aggregation_labels)s, scaledObject, metric, scaler) (
+              label_replace(
+                keda_scaler_metrics_value{%(cluster_label)s=~"$cluster", exported_namespace=~"$namespace", scaler=~"%(scaler_selector)s"},
+                "namespace", "$1", "exported_namespace", "(.*)"
+              )
             )
             /
-            on(%(aggregation_labels)s, scaledObject, metric) group_left label_replace(
-              label_replace(
-                kube_horizontalpodautoscaler_spec_target_metric{%(namespace)s, horizontalpodautoscaler=~"%(hpa_name)s"},
-                "metric", "$1", "metric_name", "(.+)"
-              ),
-              "scaledObject", "$1", "horizontalpodautoscaler", "%(hpa_prefix)s(.*)"
-            )
+            on(%(aggregation_labels)s, scaledObject, metric) group_left
+              # Using `max by ()` so that series churn doesn't break the promQL join
+              max by (%(aggregation_labels)s, scaledObject, metric) (
+                label_replace(
+                  label_replace(
+                    kube_horizontalpodautoscaler_spec_target_metric{%(namespace)s, horizontalpodautoscaler=~"%(hpa_name)s"},
+                    "metric", "$1", "metric_name", "(.+)"
+                  ),
+                  "scaledObject", "$1", "horizontalpodautoscaler", "%(hpa_prefix)s(.*)"
+                )
+              )
             *
-            on(%(aggregation_labels)s, scaledObject) group_left label_replace(
-              kube_horizontalpodautoscaler_status_current_replicas{%(namespace)s, horizontalpodautoscaler=~"%(hpa_name)s"},
-              "scaledObject", "$1", "horizontalpodautoscaler", "keda-hpa-(.*)"
-            )
+            on(%(aggregation_labels)s, scaledObject) group_left
+              # Using `max by ()` so that series churn doesn't break the promQL join
+              max by (%(aggregation_labels)s, scaledObject) (
+                label_replace(
+                  kube_horizontalpodautoscaler_status_current_replicas{%(namespace)s, horizontalpodautoscaler=~"%(hpa_name)s"},
+                  "scaledObject", "$1", "horizontalpodautoscaler", "keda-hpa-(.*)"
+                )
+              )
           )
         ||| % {
           aggregation_labels: $._config.alert_aggregation_labels,
@@ -1424,20 +1443,23 @@ local utils = import 'mixin-utils/utils.libsonnet';
 
   filterKedaScalerErrorsByHPA(hpa_name)::
     |||
-      sum by(%(aggregation_labels)s, scaler, metric, scaledObject) (
+      sum by(%(aggregation_labels)s, metric, scaledObject, scaler) (
         label_replace(
           rate(keda_scaler_errors[$__rate_interval]),
           "namespace", "$1", "exported_namespace", "(.+)"
         )
       ) +
       on(%(aggregation_labels)s, metric, scaledObject) group_left
-      label_replace(
-        label_replace(
-            kube_horizontalpodautoscaler_spec_target_metric{%(namespace)s, horizontalpodautoscaler=~"%(hpa_name)s"} * 0,
-            "scaledObject", "$1", "horizontalpodautoscaler", "%(hpa_prefix)s(.*)"
-        ),
-        "metric", "$1", "metric_name", "(.+)"
-      )
+        # Using `max by ()` so that series churn doesn't break the promQL join
+        max by (%(aggregation_labels)s, metric, scaledObject) (
+          label_replace(
+            label_replace(
+                kube_horizontalpodautoscaler_spec_target_metric{%(namespace)s, horizontalpodautoscaler=~"%(hpa_name)s"} * 0,
+                "scaledObject", "$1", "horizontalpodautoscaler", "%(hpa_prefix)s(.*)"
+            ),
+            "metric", "$1", "metric_name", "(.+)"
+          )
+        )
     ||| % {
       hpa_name: hpa_name,
       hpa_prefix: $._config.autoscaling_hpa_prefix,

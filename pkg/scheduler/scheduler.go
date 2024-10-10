@@ -8,6 +8,7 @@ package scheduler
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -26,6 +27,8 @@ import (
 	"github.com/grafana/dskit/user"
 	otgrpc "github.com/opentracing-contrib/go-grpc"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -38,6 +41,7 @@ import (
 	"github.com/grafana/mimir/pkg/scheduler/schedulerdiscovery"
 	"github.com/grafana/mimir/pkg/scheduler/schedulerpb"
 	"github.com/grafana/mimir/pkg/util"
+	"github.com/grafana/mimir/pkg/util/grpcencoding/s2"
 	"github.com/grafana/mimir/pkg/util/httpgrpcutil"
 	"github.com/grafana/mimir/pkg/util/validation"
 )
@@ -103,9 +107,10 @@ type Config struct {
 
 func (cfg *Config) RegisterFlags(f *flag.FlagSet, logger log.Logger) {
 	f.IntVar(&cfg.MaxOutstandingPerTenant, "query-scheduler.max-outstanding-requests-per-tenant", 100, "Maximum number of outstanding requests per tenant per query-scheduler. In-flight requests above this limit will fail with HTTP response status code 429.")
-	f.BoolVar(&cfg.PrioritizeQueryComponents, "query-scheduler.prioritize-query-components", false, "When enabled, the query scheduler primarily prioritizes dequeuing fairly from queue components and secondarily prioritizes dequeuing fairly across tenants. When disabled, the query scheduler primarily prioritizes tenant fairness. You must enable the `query-scheduler.use-multi-algorithm-query-queue` setting to use this flag.")
+	f.BoolVar(&cfg.PrioritizeQueryComponents, "query-scheduler.prioritize-query-components", false, "When enabled, the query scheduler primarily prioritizes dequeuing fairly from queue components and secondarily prioritizes dequeuing fairly across tenants. When disabled, the query scheduler primarily prioritizes tenant fairness.")
 	f.DurationVar(&cfg.QuerierForgetDelay, "query-scheduler.querier-forget-delay", 0, "If a querier disconnects without sending notification about graceful shutdown, the query-scheduler will keep the querier in the tenant's shard until the forget delay has passed. This feature is useful to reduce the blast radius when shuffle-sharding is enabled.")
 
+	cfg.GRPCClientConfig.CustomCompressors = []string{s2.Name}
 	cfg.GRPCClientConfig.RegisterFlagsWithPrefix("query-scheduler.grpc-client-config", f)
 	cfg.ServiceDiscovery.RegisterFlags(f, logger)
 }
@@ -469,7 +474,7 @@ func (s *Scheduler) QuerierLoop(querier schedulerpb.SchedulerForQuerier_QuerierL
 			continue
 		}
 
-		if err := s.forwardRequestToQuerier(querier, schedulerReq, queueTime); err != nil {
+		if err := s.forwardRequestToQuerier(querier, querierID, schedulerReq, queueTime); err != nil {
 			return err
 		}
 	}
@@ -485,7 +490,7 @@ func (s *Scheduler) NotifyQuerierShutdown(ctx context.Context, req *schedulerpb.
 	return &schedulerpb.NotifyQuerierShutdownResponse{}, nil
 }
 
-func (s *Scheduler) forwardRequestToQuerier(querier schedulerpb.SchedulerForQuerier_QuerierLoopServer, req *queue.SchedulerRequest, queueTime time.Duration) error {
+func (s *Scheduler) forwardRequestToQuerier(querier schedulerpb.SchedulerForQuerier_QuerierLoopServer, querierID string, req *queue.SchedulerRequest, queueTime time.Duration) error {
 	s.requestQueue.QueryComponentUtilization.MarkRequestSent(req)
 	defer s.requestQueue.QueryComponentUtilization.MarkRequestCompleted(req)
 	defer s.cancelRequestAndRemoveFromPending(req.Key(), "request complete")
@@ -494,6 +499,9 @@ func (s *Scheduler) forwardRequestToQuerier(querier schedulerpb.SchedulerForQuer
 	// monitor the contexts in a select and cancel things appropriately.
 	errCh := make(chan error, 1)
 	go func() {
+		span, _ := opentracing.StartSpanFromContext(req.Ctx, "forwardRequestToQuerier")
+		span.SetTag("querier_id", querierID)
+
 		err := querier.Send(&schedulerpb.SchedulerToQuerier{
 			UserID:          req.UserID,
 			QueryID:         req.QueryID,
@@ -502,13 +510,24 @@ func (s *Scheduler) forwardRequestToQuerier(querier schedulerpb.SchedulerForQuer
 			StatsEnabled:    req.StatsEnabled,
 			QueueTimeNanos:  queueTime.Nanoseconds(),
 		})
+
 		if err != nil {
-			errCh <- err
+			errCh <- fmt.Errorf("failed to send query to querier '%v': %w", querierID, err)
+			span.LogFields(otlog.Message("sending query to querier failed"), otlog.Error(err))
+			ext.Error.Set(span, true)
+			span.Finish()
 			return
 		}
 
+		span.Finish()
+
 		_, err = querier.Recv()
-		errCh <- err
+		if err != nil {
+			errCh <- fmt.Errorf("failed to receive response from querier '%v': %w", querierID, err)
+			return
+		}
+
+		errCh <- nil
 	}()
 
 	select {

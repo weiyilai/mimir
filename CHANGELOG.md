@@ -4,6 +4,73 @@
 
 ### Grafana Mimir
 
+* [CHANGE] Alertmanager: the following metrics are not exported for a given `user` when the metric value is zero: #9359
+  * `cortex_alertmanager_alerts_received_total`
+  * `cortex_alertmanager_alerts_invalid_total`
+  * `cortex_alertmanager_partial_state_merges_total`
+  * `cortex_alertmanager_partial_state_merges_failed_total`
+  * `cortex_alertmanager_state_replication_total`
+  * `cortex_alertmanager_state_replication_failed_total`
+  * `cortex_alertmanager_alerts`
+  * `cortex_alertmanager_silences`
+* [FEATURE] Querier: add experimental streaming PromQL engine, enabled with `-querier.query-engine=mimir`. #9367 #9368 #9398 #9399 #9403 #9417 #9418 #9419 #9420 #9482 #9504 #9505 #9507 #9518 #9531 #9532 #9533 #9553
+* [FEATURE] Query-frontend: added experimental configuration options `query-frontend.cache-errors` and `query-frontend.results-cache-ttl-for-errors` to allow non-transient responses to be cached. When set to `true` error responses from hitting limits or bad data are cached for a short TTL. #9028
+* [FEATURE] gRPC: Support S2 compression. #9322
+  * `-alertmanager.alertmanager-client.grpc-compression=s2`
+  * `-ingester.client.grpc-compression=s2`
+  * `-querier.frontend-client.grpc-compression=s2`
+  * `-querier.scheduler-client.grpc-compression=s2`
+  * `-query-frontend.grpc-client-config.grpc-compression=s2`
+  * `-query-scheduler.grpc-client-config.grpc-compression=s2`
+  * `-ruler.client.grpc-compression=s2`
+  * `-ruler.query-frontend.grpc-client-config.grpc-compression=s2`
+* [FEATURE] Alertmanager: limit added for maximum size of the Grafana state (`-alertmanager.max-grafana-state-size-bytes`). #9475
+* [FEATURE] Alertmanager: limit added for maximum size of the Grafana configuration (`-alertmanager.max-config-size-bytes`). #9402
+* [FEATURE] Ingester: Experimental support for ingesting out-of-order native histograms. This is disabled by default and can be enabled by setting `-ingester.ooo-native-histograms-ingestion-enabled` to `true`. #7175
+* [ENHANCEMENT] Ruler: Support `exclude_alerts` parameter in `<prometheus-http-prefix>/api/v1/rules` endpoint. #9300
+* [ENHANCEMENT] Distributor: add a metric to track tenants who are sending newlines in their label values called `cortex_distributor_label_values_with_newlines_total`. #9400
+* [ENHANCEMENT] Ingester: improve performance of reading the WAL. #9508
+* [ENHANCEMENT] Query-scheduler: improve the errors and traces emitted by query-schedulers when communicating with queriers. #9519
+* [ENHANCEMENT] Compactor: uploaded blocks cannot be bigger than max configured compactor time range, and cannot cross the boundary for given time range. #9524
+* [ENHANCEMENT] The distributor now validates that received label values only contain allowed characters. #9185
+* [BUGFIX] Fix issue where functions such as `rate()` over native histograms could return incorrect values if a float stale marker was present in the selected range. #9508
+* [BUGFIX] Fix issue where negation of native histograms (eg. `-some_native_histogram_series`) did nothing. #9508
+* [BUGFIX] Fix issue where `metric might not be a counter, name does not end in _total/_sum/_count/_bucket` annotation would be emitted even if `rate` or `increase` did not have enough samples to compute a result. #9508
+* [BUGFIX] Fix issue where sharded queries could return annotations with incorrect or confusing position information. #9536
+
+### Mixin
+
+* [BUGFIX] Dashboards: Fix autoscaling metrics joins when series churn. #9412 #9450 #9432
+* [BUGFIX] Alerts: Fix autoscaling metrics joins in `MimirAutoscalerNotActive` when series churn. #9412
+
+### Jsonnet
+
+* [FEATURE] Add support to deploy distributors in multi availability zones. #9548
+* [ENHANCEMENT] Add `ingest_storage_ingester_autoscaling_triggers` option to specify multiple triggers in ScaledObject created for ingest-store ingester autoscaling. #9422
+* [ENHANCEMENT] Add `ingest_storage_ingester_autoscaling_scale_up_stabilization_window_seconds` and `ingest_storage_ingester_autoscaling_scale_down_stabilization_window_seconds` config options to make stabilization window for ingester autoscaling when using ingest-storage configurable. #9445
+* [ENHANCEMENT] Make label-selector in ReplicaTemplate/ingester-zone-a object configurable when using ingest-storage. #9480
+* [ENHANCEMENT] Add `querier_only_args` option to specify CLI flags that apply only to queriers but not ruler-queriers. #9503
+* [ENHANCEMENT] Validate the Kafka client ID configured when ingest storage is enabled. #9573
+
+### Mimirtool
+
+### Mimir Continuous Test
+
+### Query-tee
+
+* [FEATURE] Added `-proxy.compare-skip-samples-before` to skip samples before the given time when comparing responses. The time can be in RFC3339 format (or) RFC3339 without the timezone and seconds (or) date only. #9515
+
+### Documentation
+
+### Tools
+
+* [FEATURE] `splitblocks`: add new tool to split blocks larger than a specified duration into multiple blocks. #9517
+* [ENHANCEMENT] `copyblocks`: Added `--skip-no-compact-block-duration-check`, which defaults to `false`, to simplify targeting blocks that are not awaiting compaction. #9439
+
+## 2.14.0
+
+### Grafana Mimir
+
 * [CHANGE] Update minimal supported version of Go to 1.22. #9134
 * [CHANGE] Store-gateway / querier: enable streaming chunks from store-gateways to queriers by default. #6646
 * [CHANGE] Querier: honor the start/end time range specified in the read hints when executing a remote read request. #8431
@@ -32,6 +99,9 @@
 * [CHANGE] Querier: allow wrapping errors with context errors only when the former actually correspond to `context.Canceled` and `context.DeadlineExceeded`. #9175
 * [CHANGE] Query-scheduler: Remove the experimental `-query-scheduler.use-multi-algorithm-query-queue` flag. The new multi-algorithm tree queue is always used for the scheduler. #9210
 * [CHANGE] Distributor: reject incoming requests until the distributor service has started. #9317
+* [CHANGE] Ingester, Distributor: Remove deprecated `-ingester.limit-inflight-requests-using-grpc-method-limiter` and `-distributor.limit-inflight-requests-using-grpc-method-limiter`. The feature was deprecated and enabled by default in Mimir 2.12. #9407
+* [CHANGE] Querier: Remove deprecated `-querier.max-query-into-future`. The feature was deprecated in Mimir 2.12. #9407
+* [CHANGE] Cache: Deprecate experimental support for Redis as a cache backend. The support is set to be removed in the next major release. #9453
 * [FEATURE] Alertmanager: Added `-alertmanager.log-parsing-label-matchers` to control logging when parsing label matchers. This flag is intended to be used with `-alertmanager.utf8-strict-mode-enabled` to validate UTF-8 strict mode is working as intended. The default value is `false`. #9173
 * [FEATURE] Alertmanager: Added `-alertmanager.utf8-migration-logging-enabled` to enable logging of tenant configurations that are incompatible with UTF-8 strict mode. The default value is `false`. #9174
 * [FEATURE] Querier: add experimental streaming PromQL engine, enabled with `-querier.query-engine=mimir`. #8422 #8430 #8454 #8455 #8360 #8490 #8508 #8577 #8660 #8671 #8677 #8747 #8850 #8872 #8838 #8911 #8909 #8923 #8924 #8925 #8932 #8933 #8934 #8962 #8986 #8993 #8995 #9008 #9017 #9018 #9019 #9120 #9121 #9136 #9139 #9140 #9145 #9191 #9192 #9194 #9196 #9201 #9212 #9225 #9260 #9272 #9277 #9278 #9280 #9281 #9342 #9343 #9371
@@ -88,7 +158,6 @@
 * [ENHANCEMENT] Querier: attach logs emitted during query consistency check to trace span for query. #9213
 * [ENHANCEMENT] Query-scheduler: Experimental `-query-scheduler.prioritize-query-components` flag enables the querier-worker queue priority algorithm to take precedence over tenant rotation when dequeuing requests. #9220
 * [ENHANCEMENT] Add application credential arguments for Openstack Swift storage backend. #9181
-* [ENHANCEMENT] Ruler: Support `exclude_alerts` parameter in `<prometheus-http-prefix>/api/v1/rules` endpoint. #9300
 * [BUGFIX] Ruler: add support for draining any outstanding alert notifications before shutting down. This can be enabled with the `-ruler.drain-notification-queue-on-shutdown=true` CLI flag. #8346
 * [BUGFIX] Query-frontend: fix `-querier.max-query-lookback` enforcement when `-compactor.blocks-retention-period` is not set, and viceversa. #8388
 * [BUGFIX] Ingester: fix sporadic `not found` error causing an internal server error if label names are queried with matchers during head compaction. #8391
@@ -181,6 +250,8 @@
 
 ### Mimirtool
 
+* [CHANGE] Disable colored output on mimirtool when the output is not to a terminal. #9423
+* [CHANGE] Add `--force-color` flag to be able to enable colored output when the output is not to a terminal. #9423
 * [CHANGE] Analyze Rules: Count recording rules used in rules group as used. #6133
 * [CHANGE] Remove deprecated `--rule-files` flag in favor of CLI arguments for the following commands: #8701
   * `mimirtool rules load`
@@ -218,6 +289,7 @@
 * [ENHANCEMENT] Optionally consider equivalent error messages the same when comparing responses. Enabled by default, disable with `-proxy.require-exact-error-match=true`. #9143 #9350 #9366
 * [BUGFIX] Ensure any errors encountered while forwarding a request to a backend (eg. DNS resolution failures) are logged. #8419
 * [BUGFIX] The comparison of the results should not fail when either side contains extra samples from within SkipRecentSamples duration. #8920
+* [BUGFIX] When `-proxy.compare-skip-recent-samples` is enabled, compare sample timestamps with the time the query requests were made, rather than the time at which the comparison is occurring. #9416
 
 ### Documentation
 

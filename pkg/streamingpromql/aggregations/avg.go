@@ -26,9 +26,10 @@ type AvgAggregationGroup struct {
 	histograms             []*histogram.FloatHistogram
 	histogramPointCount    int
 
-	// Keeps track of how many series we have encountered thus far for the group at this point
-	// This is necessary to do per point (instead of just counting the groups) as a series may have
+	// Keeps track of how many samples we have encountered thus far for the group at this point
+	// This is necessary to do per point (instead of just counting the input series) as a series may have
 	// stale or non-existent values that are not added towards the count.
+	// We use float64 instead of uint64 so that we can reuse the float pool and don't have to retype on each division.
 	groupSeriesCounts []float64
 }
 
@@ -86,7 +87,7 @@ func (g *AvgAggregationGroup) accumulateFloats(data types.InstantVectorSeriesDat
 	}
 
 	for _, p := range data.Floats {
-		idx := (p.T - timeRange.StartT) / timeRange.IntervalMs
+		idx := timeRange.PointIndex(p.T)
 		g.groupSeriesCounts[idx]++
 		if !g.floatPresent[idx] {
 			// The first point is just taken as the value
@@ -167,7 +168,7 @@ func (g *AvgAggregationGroup) accumulateHistograms(data types.InstantVectorSerie
 	var lastUncopiedHistogram *histogram.FloatHistogram
 
 	for inputIdx, p := range data.Histograms {
-		outputIdx := (p.T - timeRange.StartT) / timeRange.IntervalMs
+		outputIdx := timeRange.PointIndex(p.T)
 		g.groupSeriesCounts[outputIdx]++
 
 		if g.histograms[outputIdx] == invalidCombinationOfHistograms {
@@ -293,7 +294,7 @@ func (g *AvgAggregationGroup) ComputeOutputSeries(timeRange types.QueryTimeRange
 
 		for i, havePoint := range g.floatPresent {
 			if havePoint {
-				t := timeRange.StartT + int64(i)*timeRange.IntervalMs
+				t := timeRange.StartT + int64(i)*timeRange.IntervalMilliseconds
 				var f float64
 				if g.incrementalMeans != nil && g.incrementalMeans[i] {
 					f = g.floatMeans[i] + g.floatCompensatingMeans[i]
@@ -314,7 +315,7 @@ func (g *AvgAggregationGroup) ComputeOutputSeries(timeRange types.QueryTimeRange
 
 		for i, h := range g.histograms {
 			if h != nil && h != invalidCombinationOfHistograms {
-				t := timeRange.StartT + int64(i)*timeRange.IntervalMs
+				t := timeRange.StartT + int64(i)*timeRange.IntervalMilliseconds
 				histogramPoints = append(histogramPoints, promql.HPoint{T: t, H: h.Compact(0)})
 			}
 		}

@@ -39,6 +39,7 @@ import (
 	"github.com/grafana/mimir/pkg/alertmanager/alertstore"
 	"github.com/grafana/mimir/pkg/alertmanager/alertstore/bucketclient"
 	"github.com/grafana/mimir/pkg/api"
+	"github.com/grafana/mimir/pkg/blockbuilder"
 	"github.com/grafana/mimir/pkg/compactor"
 	"github.com/grafana/mimir/pkg/continuoustest"
 	"github.com/grafana/mimir/pkg/distributor"
@@ -100,6 +101,7 @@ const (
 	Vault                           string = "vault"
 	TenantFederation                string = "tenant-federation"
 	UsageStats                      string = "usage-stats"
+	BlockBuilder                    string = "block-builder"
 	ContinuousTest                  string = "continuous-test"
 	All                             string = "all"
 
@@ -292,26 +294,20 @@ func (t *Mimir) initServer() (services.Service, error) {
 	// t.Ingester or t.Distributor will be available. There's no race condition here, because gRPC server (service returned by this method, ie. initServer)
 	// is started only after t.Ingester and t.Distributor are set in initIngester or initDistributorService.
 
-	var ingFn func() pushReceiver
-	if t.Cfg.Ingester.LimitInflightRequestsUsingGrpcMethodLimiter {
-		ingFn = func() pushReceiver {
-			// Return explicit nil, if there's no ingester. We don't want to return typed-nil as interface value.
-			if t.Ingester == nil {
-				return nil
-			}
-			return t.Ingester
+	ingFn := func() pushReceiver {
+		// Return explicit nil if there's no ingester. We don't want to return typed-nil as interface value.
+		if t.Ingester == nil {
+			return nil
 		}
+		return t.Ingester
 	}
 
-	var distFn func() pushReceiver
-	if t.Cfg.Distributor.LimitInflightRequestsUsingGrpcMethodLimiter {
-		distFn = func() pushReceiver {
-			// Return explicit nil, if there's no distributor. We don't want to return typed-nil as interface value.
-			if t.Distributor == nil {
-				return nil
-			}
-			return t.Distributor
+	distFn := func() pushReceiver {
+		// Return explicit nil if there's no distributor. We don't want to return typed-nil as interface value.
+		if t.Distributor == nil {
+			return nil
 		}
+		return t.Distributor
 	}
 
 	// Installing this allows us to reject push requests received via gRPC early -- before they are fully read into memory.
@@ -700,7 +696,7 @@ func (t *Mimir) initFlusher() (serv services.Service, err error) {
 // initQueryFrontendCodec initializes query frontend codec.
 // NOTE: Grafana Enterprise Metrics depends on this.
 func (t *Mimir) initQueryFrontendCodec() (services.Service, error) {
-	t.QueryFrontendCodec = querymiddleware.NewPrometheusCodec(t.Registerer, t.Cfg.Frontend.FrontendV2.LookBackDelta, t.Cfg.Frontend.QueryMiddleware.QueryResultResponseFormat)
+	t.QueryFrontendCodec = querymiddleware.NewPrometheusCodec(t.Registerer, t.Cfg.Frontend.FrontendV2.LookBackDelta, t.Cfg.Frontend.QueryMiddleware.QueryResultResponseFormat, nil)
 	return nil, nil
 }
 
@@ -834,13 +830,12 @@ func (t *Mimir) initRulerStorage() (serv services.Service, err error) {
 	// we do accept stale data for about a polling interval (2 intervals in the worst
 	// case scenario due to the jitter applied).
 	cacheTTL := t.Cfg.Ruler.PollInterval
-
-	t.RulerDirectStorage, t.RulerCachedStorage, err = ruler.NewRuleStore(context.Background(), t.Cfg.RulerStorage, t.Overrides, rules.FileLoader{}, cacheTTL, util_log.Logger, t.Registerer)
+	t.RulerStorage, err = ruler.NewRuleStore(context.Background(), t.Cfg.RulerStorage, t.Overrides, rules.FileLoader{}, cacheTTL, util_log.Logger, t.Registerer)
 	return
 }
 
 func (t *Mimir) initRuler() (serv services.Service, err error) {
-	if t.RulerDirectStorage == nil {
+	if t.RulerStorage == nil {
 		level.Info(util_log.Logger).Log("msg", "The ruler storage has not been configured. Not starting the ruler.")
 		return nil, nil
 	}
@@ -943,8 +938,7 @@ func (t *Mimir) initRuler() (serv services.Service, err error) {
 		manager,
 		t.Registerer,
 		util_log.Logger,
-		t.RulerDirectStorage,
-		t.RulerCachedStorage,
+		t.RulerStorage,
 		t.Overrides,
 	)
 	if err != nil {
@@ -955,7 +949,7 @@ func (t *Mimir) initRuler() (serv services.Service, err error) {
 	t.API.RegisterRuler(t.Ruler)
 
 	// Expose HTTP configuration and prometheus-compatible Ruler APIs
-	t.API.RegisterRulerAPI(ruler.NewAPI(t.Ruler, t.RulerDirectStorage, util_log.Logger), t.Cfg.Ruler.EnableAPI, t.BuildInfoHandler)
+	t.API.RegisterRulerAPI(ruler.NewAPI(t.Ruler, t.RulerStorage, util_log.Logger), t.Cfg.Ruler.EnableAPI, t.BuildInfoHandler)
 
 	return t.Ruler, nil
 }
@@ -1089,6 +1083,16 @@ func (t *Mimir) initUsageStats() (services.Service, error) {
 	return t.UsageStatsReporter, nil
 }
 
+func (t *Mimir) initBlockBuilder() (_ services.Service, err error) {
+	t.Cfg.BlockBuilder.Kafka = t.Cfg.IngestStorage.KafkaConfig
+	t.Cfg.BlockBuilder.BlocksStorage = t.Cfg.BlocksStorage
+	t.BlockBuilder, err = blockbuilder.New(t.Cfg.BlockBuilder, util_log.Logger, t.Registerer, t.Overrides)
+	if err != nil {
+		return nil, errors.Wrap(err, "block-builder init")
+	}
+	return t.BlockBuilder, nil
+}
+
 func (t *Mimir) initContinuousTest() (services.Service, error) {
 	client, err := continuoustest.NewClient(t.Cfg.ContinuousTest.Client, util_log.Logger)
 	if err != nil {
@@ -1139,6 +1143,7 @@ func (t *Mimir) setupModuleManager() error {
 	mm.RegisterModule(QueryScheduler, t.initQueryScheduler)
 	mm.RegisterModule(TenantFederation, t.initTenantFederation, modules.UserInvisibleModule)
 	mm.RegisterModule(UsageStats, t.initUsageStats, modules.UserInvisibleModule)
+	mm.RegisterModule(BlockBuilder, t.initBlockBuilder)
 	mm.RegisterModule(ContinuousTest, t.initContinuousTest)
 	mm.RegisterModule(Vault, t.initVault, modules.UserInvisibleModule)
 	mm.RegisterModule(Write, nil)
@@ -1174,6 +1179,7 @@ func (t *Mimir) setupModuleManager() error {
 		Compactor:                       {API, MemberlistKV, Overrides, Vault},
 		StoreGateway:                    {API, Overrides, MemberlistKV, Vault},
 		TenantFederation:                {Queryable},
+		BlockBuilder:                    {API, Overrides},
 		ContinuousTest:                  {API},
 		Write:                           {Distributor, Ingester},
 		Read:                            {QueryFrontend, Querier},

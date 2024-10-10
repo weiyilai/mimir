@@ -152,6 +152,11 @@ type HeadOptions struct {
 	// EnableNativeHistograms enables the ingestion of native histograms.
 	EnableNativeHistograms atomic.Bool
 
+	// EnableOOONativeHistograms enables the ingestion of OOO native histograms.
+	// It will only take effect if EnableNativeHistograms is set to true and the
+	// OutOfOrderTimeWindow is > 0
+	EnableOOONativeHistograms atomic.Bool
+
 	// EnableCreatedTimestampZeroIngestion enables the ingestion of the created timestamp as a synthetic zero sample.
 	// See: https://github.com/prometheus/proposals/blob/main/proposals/2023-06-13_created-timestamp.md
 	EnableCreatedTimestampZeroIngestion bool
@@ -1047,6 +1052,16 @@ func (h *Head) EnableNativeHistograms() {
 // DisableNativeHistograms disables the native histogram feature.
 func (h *Head) DisableNativeHistograms() {
 	h.opts.EnableNativeHistograms.Store(false)
+}
+
+// EnableOOONativeHistograms enables the ingestion of out-of-order native histograms.
+func (h *Head) EnableOOONativeHistograms() {
+	h.opts.EnableOOONativeHistograms.Store(true)
+}
+
+// DisableOOONativeHistograms disables the ingestion of out-of-order native histograms.
+func (h *Head) DisableOOONativeHistograms() {
+	h.opts.EnableOOONativeHistograms.Store(false)
 }
 
 // PostingsCardinalityStats returns highest cardinality stats by label and value names.
@@ -2101,6 +2116,17 @@ func (s sample) Type() chunkenc.ValueType {
 	default:
 		return chunkenc.ValFloat
 	}
+}
+
+func (s sample) Copy() chunks.Sample {
+	c := sample{t: s.t, f: s.f}
+	if s.h != nil {
+		c.h = s.h.Copy()
+	}
+	if s.fh != nil {
+		c.fh = s.fh.Copy()
+	}
+	return c
 }
 
 // memSeries is the in-memory representation of a series. None of its methods

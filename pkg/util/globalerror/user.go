@@ -21,6 +21,7 @@ const (
 	NotReducibleNativeHistogram           ID = "not-reducible-native-histogram"
 	InvalidSchemaNativeHistogram          ID = "invalid-native-histogram-schema"
 	SeriesInvalidLabel                    ID = "label-invalid"
+	SeriesInvalidLabelValue               ID = "label-value-invalid"
 	SeriesLabelNameTooLong                ID = "label-name-too-long"
 	SeriesLabelValueTooLong               ID = "label-value-too-long"
 	SeriesWithDuplicateLabelNames         ID = "duplicate-label-names"
@@ -85,6 +86,11 @@ const (
 	NativeHistogramNegativeBucketCount  ID = "native-histogram-negative-bucket-count"
 	NativeHistogramSpanNegativeOffset   ID = "native-histogram-span-negative-offset"
 	NativeHistogramSpansBucketsMismatch ID = "native-histogram-spans-buckets-mismatch"
+	NativeHistogramOOODisabled          ID = "native-histogram-ooo-disabled"
+
+	// Alertmanager errors
+	AlertmanagerMaxGrafanaConfigSize ID = "alertmanager-max-grafana-config-size"
+	AlertmanagerMaxGrafanaStateSize  ID = "alertmanager-max-grafana-state-size"
 )
 
 // Message returns the provided msg, appending the error id.

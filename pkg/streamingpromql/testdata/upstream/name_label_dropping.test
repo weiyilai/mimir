@@ -21,14 +21,12 @@ eval instant at 15m metric + another_metric
 	{env="1"} 300
 
 # Does not drop __name__ for binary comparison operators
-# Unsupported by streaming engine.
-# eval instant at 15m metric <= another_metric
-# 	metric{env="1"} 120
+eval instant at 15m metric <= another_metric
+	metric{env="1"} 120
 
 # Drops __name__ for binary comparison operators with "bool" modifier
-# Unsupported by streaming engine.
-# eval instant at 15m metric <= bool another_metric
-# 	{env="1"} 1
+eval instant at 15m metric <= bool another_metric
+	{env="1"} 1
 
 # Drops __name__ for vector-scalar operations
 eval instant at 15m metric * 2
@@ -86,8 +84,9 @@ eval instant at 15m sum by (__name__, env) (metric{env="1"})
 
 # Aggregation operators aggregate metrics with same labelset and to-be-dropped names
 # This is an accidental side effect of delayed __name__ label dropping
-eval instant at 15m sum(rate({env="1"}[10m])) by (env)
-	{env="1"} 0.4
+# Unsupported by streaming engine.
+# eval instant at 15m sum(rate({env="1"}[10m])) by (env)
+# 	{env="1"} 0.4
 
 # Aggregationk operators propagate __name__ label dropping information
 # Unsupported by streaming engine.

@@ -22,7 +22,7 @@ import (
 	"golang.org/x/time/rate"
 	"gopkg.in/yaml.v3"
 
-	"github.com/grafana/mimir/pkg/ingester/activeseries"
+	asmodel "github.com/grafana/mimir/pkg/ingester/activeseries/model"
 	"github.com/grafana/mimir/pkg/querier/api"
 	"github.com/grafana/mimir/pkg/storage/tsdb/block"
 	"github.com/grafana/mimir/pkg/util"
@@ -59,6 +59,8 @@ const (
 	resultsCacheTTLForOutOfOrderWindowFlag    = "query-frontend.results-cache-ttl-for-out-of-order-time-window"
 	alignQueriesWithStepFlag                  = "query-frontend.align-queries-with-step"
 	QueryIngestersWithinFlag                  = "querier.query-ingesters-within"
+	AlertmanagerMaxGrafanaConfigSizeFlag      = "alertmanager.max-grafana-config-size-bytes"
+	AlertmanagerMaxGrafanaStateSizeFlag       = "alertmanager.max-grafana-state-size-bytes"
 
 	// MinCompactorPartialBlockDeletionDelay is the minimum partial blocks deletion delay that can be configured in Mimir.
 	MinCompactorPartialBlockDeletionDelay = 4 * time.Hour
@@ -134,8 +136,10 @@ type Limits struct {
 	IgnoreOOOExemplars        bool `yaml:"ignore_ooo_exemplars" json:"ignore_ooo_exemplars" category:"experimental"`
 	// Native histograms
 	NativeHistogramsIngestionEnabled bool `yaml:"native_histograms_ingestion_enabled" json:"native_histograms_ingestion_enabled" category:"experimental"`
+	// OOO native histograms
+	OOONativeHistogramsIngestionEnabled bool `yaml:"ooo_native_histograms_ingestion_enabled" json:"ooo_native_histograms_ingestion_enabled" category:"experimental"`
 	// Active series custom trackers
-	ActiveSeriesCustomTrackersConfig activeseries.CustomTrackersConfig `yaml:"active_series_custom_trackers" json:"active_series_custom_trackers" doc:"description=Additional custom trackers for active metrics. If there are active series matching a provided matcher (map value), the count will be exposed in the custom trackers metric labeled using the tracker name (map key). Zero valued counts are not exposed (and removed when they go back to zero)." category:"advanced"`
+	ActiveSeriesCustomTrackersConfig asmodel.CustomTrackersConfig `yaml:"active_series_custom_trackers" json:"active_series_custom_trackers" doc:"description=Additional custom trackers for active metrics. If there are active series matching a provided matcher (map value), the count will be exposed in the custom trackers metric labeled using the tracker name (map key). Zero valued counts are not exposed (and removed when they go back to zero)." category:"advanced"`
 	// Max allowed time window for out-of-order samples.
 	OutOfOrderTimeWindow                 model.Duration `yaml:"out_of_order_time_window" json:"out_of_order_time_window" category:"experimental"`
 	OutOfOrderBlocksExternalLabelEnabled bool           `yaml:"out_of_order_blocks_external_label_enabled" json:"out_of_order_blocks_external_label_enabled" category:"experimental"`
@@ -167,6 +171,7 @@ type Limits struct {
 	ResultsCacheTTLForOutOfOrderTimeWindow model.Duration  `yaml:"results_cache_ttl_for_out_of_order_time_window" json:"results_cache_ttl_for_out_of_order_time_window"`
 	ResultsCacheTTLForCardinalityQuery     model.Duration  `yaml:"results_cache_ttl_for_cardinality_query" json:"results_cache_ttl_for_cardinality_query"`
 	ResultsCacheTTLForLabelsQuery          model.Duration  `yaml:"results_cache_ttl_for_labels_query" json:"results_cache_ttl_for_labels_query"`
+	ResultsCacheTTLForErrors               model.Duration  `yaml:"results_cache_ttl_for_errors" json:"results_cache_ttl_for_errors" category:"experimental"`
 	ResultsCacheForUnalignedQueryEnabled   bool            `yaml:"cache_unaligned_requests" json:"cache_unaligned_requests" category:"advanced"`
 	MaxQueryExpressionSizeBytes            int             `yaml:"max_query_expression_size_bytes" json:"max_query_expression_size_bytes"`
 	BlockedQueries                         []*BlockedQuery `yaml:"blocked_queries,omitempty" json:"blocked_queries,omitempty" doc:"nocli|description=List of queries to block." category:"experimental"`
@@ -219,7 +224,9 @@ type Limits struct {
 	NotificationRateLimit               float64            `yaml:"alertmanager_notification_rate_limit" json:"alertmanager_notification_rate_limit"`
 	NotificationRateLimitPerIntegration LimitsMap[float64] `yaml:"alertmanager_notification_rate_limit_per_integration" json:"alertmanager_notification_rate_limit_per_integration"`
 
+	AlertmanagerMaxGrafanaConfigSizeBytes      int `yaml:"alertmanager_max_grafana_config_size_bytes" json:"alertmanager_max_grafana_config_size_bytes"`
 	AlertmanagerMaxConfigSizeBytes             int `yaml:"alertmanager_max_config_size_bytes" json:"alertmanager_max_config_size_bytes"`
+	AlertmanagerMaxGrafanaStateSizeBytes       int `yaml:"alertmanager_max_grafana_state_size_bytes" json:"alertmanager_max_grafana_state_size_bytes"`
 	AlertmanagerMaxSilencesCount               int `yaml:"alertmanager_max_silences_count" json:"alertmanager_max_silences_count"`
 	AlertmanagerMaxSilenceSizeBytes            int `yaml:"alertmanager_max_silence_size_bytes" json:"alertmanager_max_silence_size_bytes"`
 	AlertmanagerMaxTemplatesCount              int `yaml:"alertmanager_max_templates_count" json:"alertmanager_max_templates_count"`
@@ -278,6 +285,7 @@ func (l *Limits) RegisterFlags(f *flag.FlagSet) {
 	f.Var(&l.ActiveSeriesCustomTrackersConfig, "ingester.active-series-custom-trackers", "Additional active series metrics, matching the provided matchers. Matchers should be in form <name>:<matcher>, like 'foobar:{foo=\"bar\"}'. Multiple matchers can be provided either providing the flag multiple times or providing multiple semicolon-separated values to a single flag.")
 	f.Var(&l.OutOfOrderTimeWindow, "ingester.out-of-order-time-window", fmt.Sprintf("Non-zero value enables out-of-order support for most recent samples that are within the time window in relation to the TSDB's maximum time, i.e., within [db.maxTime-timeWindow, db.maxTime]). The ingester will need more memory as a factor of rate of out-of-order samples being ingested and the number of series that are getting out-of-order samples. If query falls into this window, cached results will use value from -%s option to specify TTL for resulting cache entry.", resultsCacheTTLForOutOfOrderWindowFlag))
 	f.BoolVar(&l.NativeHistogramsIngestionEnabled, "ingester.native-histograms-ingestion-enabled", false, "Enable ingestion of native histogram samples. If false, native histogram samples are ignored without an error. To query native histograms with query-sharding enabled make sure to set -query-frontend.query-result-response-format to 'protobuf'.")
+	f.BoolVar(&l.OOONativeHistogramsIngestionEnabled, "ingester.ooo-native-histograms-ingestion-enabled", false, "Enable experimental out-of-order native histogram ingestion. This only takes effect if the `-ingester.out-of-order-time-window` value is greater than zero and if `-ingester.native-histograms-ingestion-enabled = true`")
 	f.BoolVar(&l.OutOfOrderBlocksExternalLabelEnabled, "ingester.out-of-order-blocks-external-label-enabled", false, "Whether the shipper should label out-of-order blocks with an external label before uploading them. Setting this label will compact out-of-order blocks separately from non-out-of-order blocks")
 
 	f.StringVar(&l.SeparateMetricsGroupLabel, "validation.separate-metrics-group-label", "", "Label used to define the group label for metrics separation. For each write request, the group is obtained from the first non-empty group label from the first timeseries in the incoming list of timeseries. Specific distributor and ingester metrics will be further separated adding a 'group' label with group label's value. Currently applies to the following metrics: cortex_discarded_samples_total")
@@ -347,6 +355,8 @@ func (l *Limits) RegisterFlags(f *flag.FlagSet) {
 	f.Var(&l.ResultsCacheTTLForOutOfOrderTimeWindow, resultsCacheTTLForOutOfOrderWindowFlag, fmt.Sprintf("Time to live duration for cached query results if query falls into out-of-order time window. This is lower than -%s so that incoming out-of-order samples are returned in the query results sooner.", resultsCacheTTLFlag))
 	f.Var(&l.ResultsCacheTTLForCardinalityQuery, "query-frontend.results-cache-ttl-for-cardinality-query", "Time to live duration for cached cardinality query results. The value 0 disables the cache.")
 	f.Var(&l.ResultsCacheTTLForLabelsQuery, "query-frontend.results-cache-ttl-for-labels-query", "Time to live duration for cached label names and label values query results. The value 0 disables the cache.")
+	_ = l.ResultsCacheTTLForErrors.Set("5m")
+	f.Var(&l.ResultsCacheTTLForErrors, "query-frontend.results-cache-ttl-for-errors", "Time to live duration for cached non-transient errors")
 	f.BoolVar(&l.ResultsCacheForUnalignedQueryEnabled, "query-frontend.cache-unaligned-requests", false, "Cache requests that are not step-aligned.")
 	f.IntVar(&l.MaxQueryExpressionSizeBytes, MaxQueryExpressionSizeBytesFlag, 0, "Max size of the raw query, in bytes. This limit is enforced by the query-frontend for instant, range and remote read queries. 0 to not apply a limit to the size of the query.")
 	f.BoolVar(&l.AlignQueriesWithStep, alignQueriesWithStepFlag, false, "Mutate incoming queries to align their start and end with their step to improve result caching.")
@@ -365,7 +375,9 @@ func (l *Limits) RegisterFlags(f *flag.FlagSet) {
 		l.NotificationRateLimitPerIntegration = NotificationRateLimitMap()
 	}
 	f.Var(&l.NotificationRateLimitPerIntegration, "alertmanager.notification-rate-limit-per-integration", "Per-integration notification rate limits. Value is a map, where each key is integration name and value is a rate-limit (float). On command line, this map is given in JSON format. Rate limit has the same meaning as -alertmanager.notification-rate-limit, but only applies for specific integration. Allowed integration names: "+strings.Join(allowedIntegrationNames, ", ")+".")
-	f.IntVar(&l.AlertmanagerMaxConfigSizeBytes, "alertmanager.max-config-size-bytes", 0, "Maximum size of configuration file for Alertmanager that tenant can upload via Alertmanager API. 0 = no limit.")
+	f.IntVar(&l.AlertmanagerMaxGrafanaConfigSizeBytes, AlertmanagerMaxGrafanaConfigSizeFlag, 0, "Maximum size of the Grafana Alertmanager configuration for a tenant. 0 = no limit.")
+	f.IntVar(&l.AlertmanagerMaxConfigSizeBytes, "alertmanager.max-config-size-bytes", 0, "Maximum size of the Alertmanager configuration for a tenant. 0 = no limit.")
+	f.IntVar(&l.AlertmanagerMaxGrafanaStateSizeBytes, AlertmanagerMaxGrafanaStateSizeFlag, 0, "Maximum size of the Grafana Alertmanager state for a tenant. 0 = no limit.")
 	f.IntVar(&l.AlertmanagerMaxSilencesCount, "alertmanager.max-silences-count", 0, "Maximum number of silences, including expired silences, that a tenant can have at once. 0 = no limit.")
 	f.IntVar(&l.AlertmanagerMaxSilenceSizeBytes, "alertmanager.max-silence-size-bytes", 0, "Maximum silence size in bytes. 0 = no limit.")
 	f.IntVar(&l.AlertmanagerMaxTemplatesCount, "alertmanager.max-templates-count", 0, "Maximum number of templates in tenant's Alertmanager configuration uploaded via Alertmanager API. 0 = no limit.")
@@ -748,7 +760,7 @@ func (o *Overrides) IgnoreOOOExemplars(userID string) bool {
 	return o.getOverridesForUser(userID).IgnoreOOOExemplars
 }
 
-func (o *Overrides) ActiveSeriesCustomTrackersConfig(userID string) activeseries.CustomTrackersConfig {
+func (o *Overrides) ActiveSeriesCustomTrackersConfig(userID string) asmodel.CustomTrackersConfig {
 	return o.getOverridesForUser(userID).ActiveSeriesCustomTrackersConfig
 }
 
@@ -847,6 +859,11 @@ func (o *Overrides) MetricRelabelingEnabled(userID string) bool {
 // NativeHistogramsIngestionEnabled returns whether to ingest native histograms in the ingester
 func (o *Overrides) NativeHistogramsIngestionEnabled(userID string) bool {
 	return o.getOverridesForUser(userID).NativeHistogramsIngestionEnabled
+}
+
+// OOONativeHistogramsIngestionEnabled returns whether to ingest OOO native histograms in the ingester
+func (o *Overrides) OOONativeHistogramsIngestionEnabled(userID string) bool {
+	return o.getOverridesForUser(userID).OOONativeHistogramsIngestionEnabled
 }
 
 func (o *Overrides) MaxExemplarsPerSeriesPerRequest(userID string) int {
@@ -1000,6 +1017,14 @@ func (o *Overrides) NotificationBurstSize(user string, integration string) int {
 	return int(l)
 }
 
+func (o *Overrides) AlertmanagerMaxGrafanaStateSize(userID string) int {
+	return o.getOverridesForUser(userID).AlertmanagerMaxGrafanaStateSizeBytes
+}
+
+func (o *Overrides) AlertmanagerMaxGrafanaConfigSize(userID string) int {
+	return o.getOverridesForUser(userID).AlertmanagerMaxGrafanaConfigSizeBytes
+}
+
 func (o *Overrides) AlertmanagerMaxConfigSize(userID string) int {
 	return o.getOverridesForUser(userID).AlertmanagerMaxConfigSizeBytes
 }
@@ -1046,6 +1071,10 @@ func (o *Overrides) ResultsCacheTTLForCardinalityQuery(user string) time.Duratio
 
 func (o *Overrides) ResultsCacheTTLForLabelsQuery(user string) time.Duration {
 	return time.Duration(o.getOverridesForUser(user).ResultsCacheTTLForLabelsQuery)
+}
+
+func (o *Overrides) ResultsCacheTTLForErrors(user string) time.Duration {
+	return time.Duration(o.getOverridesForUser(user).ResultsCacheTTLForErrors)
 }
 
 func (o *Overrides) ResultsCacheForUnalignedQueryEnabled(userID string) bool {

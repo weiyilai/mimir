@@ -1671,7 +1671,7 @@ The series containing such samples are skipped during ingestion, and valid serie
 
 ### err-mimir-native-histogram-count-mismatch
 
-This non-critical error occures when Mimir receives a write request that contains a sample that is a native histogram
+This non-critical error occurs when Mimir receives a write request that contains a sample that is a native histogram
 where the buckets counts don't add up to the overall count recorded in the native histogram, provided that the overall
 sum is a regular float number.
 
@@ -1685,7 +1685,7 @@ When `-ingester.error-sample-rate` is configured to a value greater than `0`, in
 
 ### err-mimir-native-histogram-count-not-big-enough
 
-This non-critical error occures when Mimir receives a write request that contains a sample that is a native histogram
+This non-critical error occurs when Mimir receives a write request that contains a sample that is a native histogram
 where the buckets counts add up to a higher number than the overall count recorded in the native histogram, provided
 that the overall sum is not a float number (NaN).
 
@@ -1699,7 +1699,7 @@ When `-ingester.error-sample-rate` is configured to a value greater than `0`, in
 
 ### err-mimir-native-histogram-negative-bucket-count
 
-This non-critical error occures when Mimir receives a write request that contains a sample that is a native histogram
+This non-critical error occurs when Mimir receives a write request that contains a sample that is a native histogram
 where some bucket count is negative.
 
 {{< admonition type="note" >}}
@@ -1712,7 +1712,7 @@ When `-ingester.error-sample-rate` is configured to a value greater than `0`, in
 
 ### err-mimir-native-histogram-span-negative-offset
 
-This non-critical error occures when Mimir receives a write request that contains a sample that is a native histogram
+This non-critical error occurs when Mimir receives a write request that contains a sample that is a native histogram
 where a bucket span has a negative offset.
 
 {{< admonition type="note" >}}
@@ -1725,8 +1725,21 @@ When `-ingester.error-sample-rate` is configured to a value greater than `0`, in
 
 ### err-mimir-native-histogram-spans-buckets-mismatch
 
-This non-critical error occures when Mimir receives a write request that contains a sample that is a native histogram
+This non-critical error occurs when Mimir receives a write request that contains a sample that is a native histogram
 where the number of bucket counts does not agree with the number of buckets encoded in the bucket spans.
+
+{{< admonition type="note" >}}
+The series containing such samples are skipped during ingestion, and valid series within the same request are ingested.
+{{< /admonition >}}
+
+{{< admonition type="note" >}}
+When `-ingester.error-sample-rate` is configured to a value greater than `0`, invalid native histogram errors are logged only once every `-ingester.error-sample-rate` times.
+{{< /admonition >}}
+
+### err-mimir-native-histogram-ooo-disabled
+
+This non-critical error occurs when Mimir receives a write request that contains a sample that is a native histogram
+where another sample with a more recent timestamp has already been ingested and `-ingester.ooo-native-histograms-ingestion-enabled` is set to `false`.
 
 {{< admonition type="note" >}}
 The series containing such samples are skipped during ingestion, and valid series within the same request are ingested.
@@ -1740,6 +1753,15 @@ When `-ingester.error-sample-rate` is configured to a value greater than `0`, in
 
 This non-critical error occurs when Mimir receives a write request that contains a series with an invalid label name.
 A label name name can only contain characters as defined by Prometheus’ [Metric names and labels](https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels).
+
+{{< admonition type="note" >}}
+Invalid series are skipped during the ingestion, and valid series within the same request are ingested.
+{{< /admonition >}}
+
+### err-mimir-label-value-invalid
+
+This non-critical error occurs when Mimir receives a write request that contains a series with a label that has an invalid value.
+A label value can only contain unicode characters as defined by Prometheus’ [Metric names and labels](https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels).
 
 {{< admonition type="note" >}}
 Invalid series are skipped during the ingestion, and valid series within the same request are ingested.
@@ -2385,6 +2407,16 @@ How it **works**:
 How to **fix** it:
 
 This error only occurs when an administrator has explicitly define a blocked list for a given tenant. After assessing whether or not the reason for blocking one or multiple queries you can update the tenant's limits and remove the pattern.
+
+### err-mimir-alertmanager-max-grafana-config-size
+
+This non-critical error occurs when the Alertmanager receives a Grafana Alertmanager configuration larger than the configured size limit.
+The limit protects the system’s stability from potential abuse or mistakes. To configure the limit on a per-tenant basis, use the `alertmanager.max-grafana-config-size-bytes` option.
+
+### err-mimir-alertmanager-max-grafana-state-size
+
+This non-critical error occurs when the Alertmanager receives a Grafana Alertmanager state larger than the configured size limit.
+The limit protects the system’s stability from potential abuse or mistakes. To configure the limit on a per-tenant basis, use the `alertmanager.max-grafana-state-size-bytes` option.
 
 ## Mimir routes by path
 

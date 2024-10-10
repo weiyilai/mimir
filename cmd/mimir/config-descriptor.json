@@ -1682,17 +1682,6 @@
         },
         {
           "kind": "field",
-          "name": "limit_inflight_requests_using_grpc_method_limiter",
-          "required": false,
-          "desc": "When enabled, in-flight write requests limit is checked as soon as the gRPC request is received, before the request is decoded and parsed.",
-          "fieldValue": null,
-          "fieldDefaultValue": true,
-          "fieldFlag": "distributor.limit-inflight-requests-using-grpc-method-limiter",
-          "fieldType": "boolean",
-          "fieldCategory": "deprecated"
-        },
-        {
-          "kind": "field",
           "name": "reusable_ingester_push_workers",
           "required": false,
           "desc": "Number of pre-allocated workers used to forward push requests to the ingesters. If 0, no workers will be used and a new goroutine will be spawned for each ingester push request. If not enough workers available, new goroutine will be spawned. (Note: this is a performance optimization, not a limiting feature.)",
@@ -1733,17 +1722,6 @@
           "fieldFlag": "querier.query-store-after",
           "fieldType": "duration",
           "fieldCategory": "advanced"
-        },
-        {
-          "kind": "field",
-          "name": "max_query_into_future",
-          "required": false,
-          "desc": "Maximum duration into the future you can query. 0 to disable.",
-          "fieldValue": null,
-          "fieldDefaultValue": 600000000000,
-          "fieldFlag": "querier.max-query-into-future",
-          "fieldType": "duration",
-          "fieldCategory": "deprecated"
         },
         {
           "kind": "block",
@@ -2002,34 +1980,45 @@
             },
             {
               "kind": "field",
-              "name": "enable_binary_operations",
+              "name": "enable_vector_vector_binary_comparison_operations",
               "required": false,
-              "desc": "Enable support for binary operations in Mimir's query engine. Only applies if the Mimir query engine is in use.",
+              "desc": "Enable support for binary comparison operations between two vectors in Mimir's query engine. Only applies if the Mimir query engine is in use.",
               "fieldValue": null,
               "fieldDefaultValue": true,
-              "fieldFlag": "querier.mimir-query-engine.enable-binary-operations",
+              "fieldFlag": "querier.mimir-query-engine.enable-vector-vector-binary-comparison-operations",
               "fieldType": "boolean",
               "fieldCategory": "experimental"
             },
             {
               "kind": "field",
-              "name": "enable_offset_modifier",
+              "name": "enable_vector_scalar_binary_comparison_operations",
               "required": false,
-              "desc": "Enable support for offset modifier in Mimir's query engine. Only applies if the Mimir query engine is in use.",
+              "desc": "Enable support for binary comparison operations between a vector and a scalar in Mimir's query engine. Only applies if the Mimir query engine is in use.",
               "fieldValue": null,
               "fieldDefaultValue": true,
-              "fieldFlag": "querier.mimir-query-engine.enable-offset-modifier",
+              "fieldFlag": "querier.mimir-query-engine.enable-vector-scalar-binary-comparison-operations",
               "fieldType": "boolean",
               "fieldCategory": "experimental"
             },
             {
               "kind": "field",
-              "name": "enable_over_time_functions",
+              "name": "enable_scalar_scalar_binary_comparison_operations",
               "required": false,
-              "desc": "Enable support for ..._over_time functions in Mimir's query engine. Only applies if the Mimir query engine is in use.",
+              "desc": "Enable support for binary comparison operations between two scalars in Mimir's query engine. Only applies if the Mimir query engine is in use.",
               "fieldValue": null,
               "fieldDefaultValue": true,
-              "fieldFlag": "querier.mimir-query-engine.enable-over-time-functions",
+              "fieldFlag": "querier.mimir-query-engine.enable-scalar-scalar-binary-comparison-operations",
+              "fieldType": "boolean",
+              "fieldCategory": "experimental"
+            },
+            {
+              "kind": "field",
+              "name": "enable_binary_logical_operations",
+              "required": false,
+              "desc": "Enable support for binary logical operations in Mimir's query engine. Only applies if the Mimir query engine is in use.",
+              "fieldValue": null,
+              "fieldDefaultValue": true,
+              "fieldFlag": "querier.mimir-query-engine.enable-binary-logical-operations",
               "fieldType": "boolean",
               "fieldCategory": "experimental"
             },
@@ -2041,17 +2030,6 @@
               "fieldValue": null,
               "fieldDefaultValue": true,
               "fieldFlag": "querier.mimir-query-engine.enable-scalars",
-              "fieldType": "boolean",
-              "fieldCategory": "experimental"
-            },
-            {
-              "kind": "field",
-              "name": "enable_unary_negation",
-              "required": false,
-              "desc": "Enable support for unary negation in Mimir's query engine. Only applies if the Mimir query engine is in use.",
-              "fieldValue": null,
-              "fieldDefaultValue": true,
-              "fieldFlag": "querier.mimir-query-engine.enable-unary-negation",
               "fieldType": "boolean",
               "fieldCategory": "experimental"
             }
@@ -2101,7 +2079,7 @@
               "kind": "field",
               "name": "grpc_compression",
               "required": false,
-              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy' and '' (disable compression)",
+              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy', 's2' and '' (disable compression)",
               "fieldValue": null,
               "fieldDefaultValue": "",
               "fieldFlag": "ingester.client.grpc-compression",
@@ -3427,17 +3405,6 @@
         },
         {
           "kind": "field",
-          "name": "limit_inflight_requests_using_grpc_method_limiter",
-          "required": false,
-          "desc": "When enabled, in-flight write requests limit is checked as soon as the gRPC request is received, before the request is decoded and parsed.",
-          "fieldValue": null,
-          "fieldDefaultValue": true,
-          "fieldFlag": "ingester.limit-inflight-requests-using-grpc-method-limiter",
-          "fieldType": "boolean",
-          "fieldCategory": "deprecated"
-        },
-        {
-          "kind": "field",
           "name": "error_sample_rate",
           "required": false,
           "desc": "Each error will be logged once in this many times. Use 0 to log all of them.",
@@ -4008,6 +3975,17 @@
         },
         {
           "kind": "field",
+          "name": "ooo_native_histograms_ingestion_enabled",
+          "required": false,
+          "desc": "Enable experimental out-of-order native histogram ingestion. This only takes effect if the `-ingester.out-of-order-time-window` value is greater than zero and if `-ingester.native-histograms-ingestion-enabled = true`",
+          "fieldValue": null,
+          "fieldDefaultValue": false,
+          "fieldFlag": "ingester.ooo-native-histograms-ingestion-enabled",
+          "fieldType": "boolean",
+          "fieldCategory": "experimental"
+        },
+        {
+          "kind": "field",
           "name": "active_series_custom_trackers",
           "required": false,
           "desc": "Additional custom trackers for active metrics. If there are active series matching a provided matcher (map value), the count will be exposed in the custom trackers metric labeled using the tracker name (map key). Zero valued counts are not exposed (and removed when they go back to zero).",
@@ -4264,6 +4242,17 @@
           "fieldDefaultValue": 0,
           "fieldFlag": "query-frontend.results-cache-ttl-for-labels-query",
           "fieldType": "duration"
+        },
+        {
+          "kind": "field",
+          "name": "results_cache_ttl_for_errors",
+          "required": false,
+          "desc": "Time to live duration for cached non-transient errors",
+          "fieldValue": null,
+          "fieldDefaultValue": 300000000000,
+          "fieldFlag": "query-frontend.results-cache-ttl-for-errors",
+          "fieldType": "duration",
+          "fieldCategory": "experimental"
         },
         {
           "kind": "field",
@@ -4632,12 +4621,32 @@
         },
         {
           "kind": "field",
+          "name": "alertmanager_max_grafana_config_size_bytes",
+          "required": false,
+          "desc": "Maximum size of the Grafana Alertmanager configuration for a tenant. 0 = no limit.",
+          "fieldValue": null,
+          "fieldDefaultValue": 0,
+          "fieldFlag": "alertmanager.max-grafana-config-size-bytes",
+          "fieldType": "int"
+        },
+        {
+          "kind": "field",
           "name": "alertmanager_max_config_size_bytes",
           "required": false,
-          "desc": "Maximum size of configuration file for Alertmanager that tenant can upload via Alertmanager API. 0 = no limit.",
+          "desc": "Maximum size of the Alertmanager configuration for a tenant. 0 = no limit.",
           "fieldValue": null,
           "fieldDefaultValue": 0,
           "fieldFlag": "alertmanager.max-config-size-bytes",
+          "fieldType": "int"
+        },
+        {
+          "kind": "field",
+          "name": "alertmanager_max_grafana_state_size_bytes",
+          "required": false,
+          "desc": "Maximum size of the Grafana Alertmanager state for a tenant. 0 = no limit.",
+          "fieldValue": null,
+          "fieldDefaultValue": 0,
+          "fieldFlag": "alertmanager.max-grafana-state-size-bytes",
           "fieldType": "int"
         },
         {
@@ -4838,7 +4847,7 @@
               "kind": "field",
               "name": "grpc_compression",
               "required": false,
-              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy' and '' (disable compression)",
+              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy', 's2' and '' (disable compression)",
               "fieldValue": null,
               "fieldDefaultValue": "",
               "fieldFlag": "querier.frontend-client.grpc-compression",
@@ -5100,7 +5109,7 @@
               "kind": "field",
               "name": "grpc_compression",
               "required": false,
-              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy' and '' (disable compression)",
+              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy', 's2' and '' (disable compression)",
               "fieldValue": null,
               "fieldDefaultValue": "",
               "fieldFlag": "querier.scheduler-client.grpc-compression",
@@ -5491,7 +5500,7 @@
               "kind": "field",
               "name": "grpc_compression",
               "required": false,
-              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy' and '' (disable compression)",
+              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy', 's2' and '' (disable compression)",
               "fieldValue": null,
               "fieldDefaultValue": "",
               "fieldFlag": "query-frontend.grpc-client-config.grpc-compression",
@@ -6033,7 +6042,8 @@
                   "fieldValue": null,
                   "fieldDefaultValue": "",
                   "fieldFlag": "query-frontend.results-cache.redis.endpoint",
-                  "fieldType": "string"
+                  "fieldType": "string",
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6043,7 +6053,8 @@
                   "fieldValue": null,
                   "fieldDefaultValue": "",
                   "fieldFlag": "query-frontend.results-cache.redis.username",
-                  "fieldType": "string"
+                  "fieldType": "string",
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6053,7 +6064,8 @@
                   "fieldValue": null,
                   "fieldDefaultValue": "",
                   "fieldFlag": "query-frontend.results-cache.redis.password",
-                  "fieldType": "string"
+                  "fieldType": "string",
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6063,7 +6075,8 @@
                   "fieldValue": null,
                   "fieldDefaultValue": 0,
                   "fieldFlag": "query-frontend.results-cache.redis.db",
-                  "fieldType": "int"
+                  "fieldType": "int",
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6074,7 +6087,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "query-frontend.results-cache.redis.master-name",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6085,7 +6098,7 @@
                   "fieldDefaultValue": 5000000000,
                   "fieldFlag": "query-frontend.results-cache.redis.dial-timeout",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6096,7 +6109,7 @@
                   "fieldDefaultValue": 3000000000,
                   "fieldFlag": "query-frontend.results-cache.redis.read-timeout",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6107,7 +6120,7 @@
                   "fieldDefaultValue": 3000000000,
                   "fieldFlag": "query-frontend.results-cache.redis.write-timeout",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6118,7 +6131,7 @@
                   "fieldDefaultValue": 100,
                   "fieldFlag": "query-frontend.results-cache.redis.connection-pool-size",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6129,7 +6142,7 @@
                   "fieldDefaultValue": 4000000000,
                   "fieldFlag": "query-frontend.results-cache.redis.connection-pool-timeout",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6140,7 +6153,7 @@
                   "fieldDefaultValue": 10,
                   "fieldFlag": "query-frontend.results-cache.redis.min-idle-connections",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6151,7 +6164,7 @@
                   "fieldDefaultValue": 300000000000,
                   "fieldFlag": "query-frontend.results-cache.redis.idle-timeout",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6162,7 +6175,7 @@
                   "fieldDefaultValue": 0,
                   "fieldFlag": "query-frontend.results-cache.redis.max-connection-age",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6173,7 +6186,7 @@
                   "fieldDefaultValue": 16777216,
                   "fieldFlag": "query-frontend.results-cache.redis.max-item-size",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6184,7 +6197,7 @@
                   "fieldDefaultValue": 50,
                   "fieldFlag": "query-frontend.results-cache.redis.max-async-concurrency",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6195,7 +6208,7 @@
                   "fieldDefaultValue": 25000,
                   "fieldFlag": "query-frontend.results-cache.redis.max-async-buffer-size",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6206,7 +6219,7 @@
                   "fieldDefaultValue": 100,
                   "fieldFlag": "query-frontend.results-cache.redis.max-get-multi-concurrency",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6217,7 +6230,7 @@
                   "fieldDefaultValue": 100,
                   "fieldFlag": "query-frontend.results-cache.redis.max-get-multi-batch-size",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6228,7 +6241,7 @@
                   "fieldDefaultValue": false,
                   "fieldFlag": "query-frontend.results-cache.redis.tls-enabled",
                   "fieldType": "boolean",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6239,7 +6252,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "query-frontend.results-cache.redis.tls-cert-path",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6250,7 +6263,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "query-frontend.results-cache.redis.tls-key-path",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6261,7 +6274,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "query-frontend.results-cache.redis.tls-ca-path",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6272,7 +6285,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "query-frontend.results-cache.redis.tls-server-name",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6283,7 +6296,7 @@
                   "fieldDefaultValue": false,
                   "fieldFlag": "query-frontend.results-cache.redis.tls-insecure-skip-verify",
                   "fieldType": "boolean",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6294,7 +6307,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "query-frontend.results-cache.redis.tls-cipher-suites",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -6305,7 +6318,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "query-frontend.results-cache.redis.tls-min-version",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 }
               ],
               "fieldValue": null,
@@ -6334,6 +6347,17 @@
           "fieldDefaultValue": false,
           "fieldFlag": "query-frontend.cache-results",
           "fieldType": "boolean"
+        },
+        {
+          "kind": "field",
+          "name": "cache_errors",
+          "required": false,
+          "desc": "Cache non-transient errors from queries.",
+          "fieldValue": null,
+          "fieldDefaultValue": false,
+          "fieldFlag": "query-frontend.cache-errors",
+          "fieldType": "boolean",
+          "fieldCategory": "experimental"
         },
         {
           "kind": "field",
@@ -6647,6 +6671,76 @@
               "fieldDefaultValue": 20000000000,
               "fieldFlag": "ingest-storage.kafka.wait-strong-read-consistency-timeout",
               "fieldType": "duration"
+            },
+            {
+              "kind": "field",
+              "name": "startup_fetch_concurrency",
+              "required": false,
+              "desc": "The number of concurrent fetch requests that the ingester makes when reading data from Kafka during startup. 0 to disable.",
+              "fieldValue": null,
+              "fieldDefaultValue": 0,
+              "fieldFlag": "ingest-storage.kafka.startup-fetch-concurrency",
+              "fieldType": "int"
+            },
+            {
+              "kind": "field",
+              "name": "startup_records_per_fetch",
+              "required": false,
+              "desc": "The number of records per fetch request that the ingester makes when reading data from Kafka during startup. Depends on ingest-storage.kafka.startup-fetch-concurrency being greater than 0.",
+              "fieldValue": null,
+              "fieldDefaultValue": 2500,
+              "fieldFlag": "ingest-storage.kafka.startup-records-per-fetch",
+              "fieldType": "int"
+            },
+            {
+              "kind": "field",
+              "name": "ongoing_fetch_concurrency",
+              "required": false,
+              "desc": "The number of concurrent fetch requests that the ingester makes when reading data continuously from Kafka after startup. Is disabled unless ingest-storage.kafka.startup-fetch-concurrency is greater than 0. 0 to disable.",
+              "fieldValue": null,
+              "fieldDefaultValue": 0,
+              "fieldFlag": "ingest-storage.kafka.ongoing-fetch-concurrency",
+              "fieldType": "int"
+            },
+            {
+              "kind": "field",
+              "name": "ongoing_records_per_fetch",
+              "required": false,
+              "desc": "The number of records per fetch request that the ingester makes when reading data continuously from Kafka after startup. Depends on ingest-storage.kafka.ongoing-fetch-concurrency being greater than 0.",
+              "fieldValue": null,
+              "fieldDefaultValue": 30,
+              "fieldFlag": "ingest-storage.kafka.ongoing-records-per-fetch",
+              "fieldType": "int"
+            },
+            {
+              "kind": "field",
+              "name": "use_compressed_bytes_as_fetch_max_bytes",
+              "required": false,
+              "desc": "When enabled, the fetch request MaxBytes field is computed using the compressed size of previous records. When disabled, MaxBytes is computed using uncompressed bytes. Different Kafka implementations interpret MaxBytes differently.",
+              "fieldValue": null,
+              "fieldDefaultValue": true,
+              "fieldFlag": "ingest-storage.kafka.use-compressed-bytes-as-fetch-max-bytes",
+              "fieldType": "boolean"
+            },
+            {
+              "kind": "field",
+              "name": "ingestion_concurrency",
+              "required": false,
+              "desc": "The number of concurrent ingestion streams to the TSDB head. Every tenant has their own set of streams. 0 to disable.",
+              "fieldValue": null,
+              "fieldDefaultValue": 0,
+              "fieldFlag": "ingest-storage.kafka.ingestion-concurrency",
+              "fieldType": "int"
+            },
+            {
+              "kind": "field",
+              "name": "ingestion_concurrency_batch_size",
+              "required": false,
+              "desc": "The number of timeseries to batch together before ingesting into TSDB. This is only used when -ingest-storage.kafka.ingestion-concurrency is greater than 0.",
+              "fieldValue": null,
+              "fieldDefaultValue": 150,
+              "fieldFlag": "ingest-storage.kafka.ingestion-concurrency-batch-size",
+              "fieldType": "int"
             }
           ],
           "fieldValue": null,
@@ -7778,7 +7872,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.endpoint",
-                      "fieldType": "string"
+                      "fieldType": "string",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7788,7 +7883,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.username",
-                      "fieldType": "string"
+                      "fieldType": "string",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7798,7 +7894,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.password",
-                      "fieldType": "string"
+                      "fieldType": "string",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7808,7 +7905,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": 0,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.db",
-                      "fieldType": "int"
+                      "fieldType": "int",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7819,7 +7917,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.master-name",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7830,7 +7928,7 @@
                       "fieldDefaultValue": 5000000000,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.dial-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7841,7 +7939,7 @@
                       "fieldDefaultValue": 3000000000,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.read-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7852,7 +7950,7 @@
                       "fieldDefaultValue": 3000000000,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.write-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7863,7 +7961,7 @@
                       "fieldDefaultValue": 100,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.connection-pool-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7874,7 +7972,7 @@
                       "fieldDefaultValue": 4000000000,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.connection-pool-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7885,7 +7983,7 @@
                       "fieldDefaultValue": 10,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.min-idle-connections",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7896,7 +7994,7 @@
                       "fieldDefaultValue": 300000000000,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.idle-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7907,7 +8005,7 @@
                       "fieldDefaultValue": 0,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.max-connection-age",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7918,7 +8016,7 @@
                       "fieldDefaultValue": 16777216,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.max-item-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7929,7 +8027,7 @@
                       "fieldDefaultValue": 50,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.max-async-concurrency",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7940,7 +8038,7 @@
                       "fieldDefaultValue": 25000,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.max-async-buffer-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7951,7 +8049,7 @@
                       "fieldDefaultValue": 100,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.max-get-multi-concurrency",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7962,7 +8060,7 @@
                       "fieldDefaultValue": 100,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.max-get-multi-batch-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7973,7 +8071,7 @@
                       "fieldDefaultValue": false,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.tls-enabled",
                       "fieldType": "boolean",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7984,7 +8082,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.tls-cert-path",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -7995,7 +8093,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.tls-key-path",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8006,7 +8104,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.tls-ca-path",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8017,7 +8115,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.tls-server-name",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8028,7 +8126,7 @@
                       "fieldDefaultValue": false,
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.tls-insecure-skip-verify",
                       "fieldType": "boolean",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8039,7 +8137,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.tls-cipher-suites",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8050,7 +8148,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.index-cache.redis.tls-min-version",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     }
                   ],
                   "fieldValue": null,
@@ -8337,7 +8435,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.endpoint",
-                      "fieldType": "string"
+                      "fieldType": "string",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8347,7 +8446,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.username",
-                      "fieldType": "string"
+                      "fieldType": "string",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8357,7 +8457,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.password",
-                      "fieldType": "string"
+                      "fieldType": "string",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8367,7 +8468,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": 0,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.db",
-                      "fieldType": "int"
+                      "fieldType": "int",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8378,7 +8480,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.master-name",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8389,7 +8491,7 @@
                       "fieldDefaultValue": 5000000000,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.dial-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8400,7 +8502,7 @@
                       "fieldDefaultValue": 3000000000,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.read-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8411,7 +8513,7 @@
                       "fieldDefaultValue": 3000000000,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.write-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8422,7 +8524,7 @@
                       "fieldDefaultValue": 100,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.connection-pool-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8433,7 +8535,7 @@
                       "fieldDefaultValue": 4000000000,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.connection-pool-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8444,7 +8546,7 @@
                       "fieldDefaultValue": 10,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.min-idle-connections",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8455,7 +8557,7 @@
                       "fieldDefaultValue": 300000000000,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.idle-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8466,7 +8568,7 @@
                       "fieldDefaultValue": 0,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.max-connection-age",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8477,7 +8579,7 @@
                       "fieldDefaultValue": 16777216,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.max-item-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8488,7 +8590,7 @@
                       "fieldDefaultValue": 50,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.max-async-concurrency",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8499,7 +8601,7 @@
                       "fieldDefaultValue": 25000,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.max-async-buffer-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8510,7 +8612,7 @@
                       "fieldDefaultValue": 100,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.max-get-multi-concurrency",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8521,7 +8623,7 @@
                       "fieldDefaultValue": 100,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.max-get-multi-batch-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8532,7 +8634,7 @@
                       "fieldDefaultValue": false,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.tls-enabled",
                       "fieldType": "boolean",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8543,7 +8645,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.tls-cert-path",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8554,7 +8656,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.tls-key-path",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8565,7 +8667,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.tls-ca-path",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8576,7 +8678,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.tls-server-name",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8587,7 +8689,7 @@
                       "fieldDefaultValue": false,
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.tls-insecure-skip-verify",
                       "fieldType": "boolean",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8598,7 +8700,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.tls-cipher-suites",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8609,7 +8711,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.chunks-cache.redis.tls-min-version",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     }
                   ],
                   "fieldValue": null,
@@ -8920,7 +9022,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.endpoint",
-                      "fieldType": "string"
+                      "fieldType": "string",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8930,7 +9033,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.username",
-                      "fieldType": "string"
+                      "fieldType": "string",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8940,7 +9044,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.password",
-                      "fieldType": "string"
+                      "fieldType": "string",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8950,7 +9055,8 @@
                       "fieldValue": null,
                       "fieldDefaultValue": 0,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.db",
-                      "fieldType": "int"
+                      "fieldType": "int",
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8961,7 +9067,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.master-name",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8972,7 +9078,7 @@
                       "fieldDefaultValue": 5000000000,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.dial-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8983,7 +9089,7 @@
                       "fieldDefaultValue": 3000000000,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.read-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -8994,7 +9100,7 @@
                       "fieldDefaultValue": 3000000000,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.write-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9005,7 +9111,7 @@
                       "fieldDefaultValue": 100,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.connection-pool-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9016,7 +9122,7 @@
                       "fieldDefaultValue": 4000000000,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.connection-pool-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9027,7 +9133,7 @@
                       "fieldDefaultValue": 10,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.min-idle-connections",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9038,7 +9144,7 @@
                       "fieldDefaultValue": 300000000000,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.idle-timeout",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9049,7 +9155,7 @@
                       "fieldDefaultValue": 0,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.max-connection-age",
                       "fieldType": "duration",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9060,7 +9166,7 @@
                       "fieldDefaultValue": 16777216,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.max-item-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9071,7 +9177,7 @@
                       "fieldDefaultValue": 50,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.max-async-concurrency",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9082,7 +9188,7 @@
                       "fieldDefaultValue": 25000,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.max-async-buffer-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9093,7 +9199,7 @@
                       "fieldDefaultValue": 100,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.max-get-multi-concurrency",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9104,7 +9210,7 @@
                       "fieldDefaultValue": 100,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.max-get-multi-batch-size",
                       "fieldType": "int",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9115,7 +9221,7 @@
                       "fieldDefaultValue": false,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.tls-enabled",
                       "fieldType": "boolean",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9126,7 +9232,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.tls-cert-path",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9137,7 +9243,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.tls-key-path",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9148,7 +9254,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.tls-ca-path",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9159,7 +9265,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.tls-server-name",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9170,7 +9276,7 @@
                       "fieldDefaultValue": false,
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.tls-insecure-skip-verify",
                       "fieldType": "boolean",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9181,7 +9287,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.tls-cipher-suites",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     },
                     {
                       "kind": "field",
@@ -9192,7 +9298,7 @@
                       "fieldDefaultValue": "",
                       "fieldFlag": "blocks-storage.bucket-store.metadata-cache.redis.tls-min-version",
                       "fieldType": "string",
-                      "fieldCategory": "advanced"
+                      "fieldCategory": "deprecated"
                     }
                   ],
                   "fieldValue": null,
@@ -11455,7 +11561,7 @@
               "kind": "field",
               "name": "grpc_compression",
               "required": false,
-              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy' and '' (disable compression)",
+              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy', 's2' and '' (disable compression)",
               "fieldValue": null,
               "fieldDefaultValue": "",
               "fieldFlag": "ruler.client.grpc-compression",
@@ -12420,7 +12526,7 @@
                   "kind": "field",
                   "name": "grpc_compression",
                   "required": false,
-                  "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy' and '' (disable compression)",
+                  "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy', 's2' and '' (disable compression)",
                   "fieldValue": null,
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler.query-frontend.grpc-client-config.grpc-compression",
@@ -13783,7 +13889,8 @@
                   "fieldValue": null,
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler-storage.cache.redis.endpoint",
-                  "fieldType": "string"
+                  "fieldType": "string",
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13793,7 +13900,8 @@
                   "fieldValue": null,
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler-storage.cache.redis.username",
-                  "fieldType": "string"
+                  "fieldType": "string",
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13803,7 +13911,8 @@
                   "fieldValue": null,
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler-storage.cache.redis.password",
-                  "fieldType": "string"
+                  "fieldType": "string",
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13813,7 +13922,8 @@
                   "fieldValue": null,
                   "fieldDefaultValue": 0,
                   "fieldFlag": "ruler-storage.cache.redis.db",
-                  "fieldType": "int"
+                  "fieldType": "int",
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13824,7 +13934,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler-storage.cache.redis.master-name",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13835,7 +13945,7 @@
                   "fieldDefaultValue": 5000000000,
                   "fieldFlag": "ruler-storage.cache.redis.dial-timeout",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13846,7 +13956,7 @@
                   "fieldDefaultValue": 3000000000,
                   "fieldFlag": "ruler-storage.cache.redis.read-timeout",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13857,7 +13967,7 @@
                   "fieldDefaultValue": 3000000000,
                   "fieldFlag": "ruler-storage.cache.redis.write-timeout",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13868,7 +13978,7 @@
                   "fieldDefaultValue": 100,
                   "fieldFlag": "ruler-storage.cache.redis.connection-pool-size",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13879,7 +13989,7 @@
                   "fieldDefaultValue": 4000000000,
                   "fieldFlag": "ruler-storage.cache.redis.connection-pool-timeout",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13890,7 +14000,7 @@
                   "fieldDefaultValue": 10,
                   "fieldFlag": "ruler-storage.cache.redis.min-idle-connections",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13901,7 +14011,7 @@
                   "fieldDefaultValue": 300000000000,
                   "fieldFlag": "ruler-storage.cache.redis.idle-timeout",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13912,7 +14022,7 @@
                   "fieldDefaultValue": 0,
                   "fieldFlag": "ruler-storage.cache.redis.max-connection-age",
                   "fieldType": "duration",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13923,7 +14033,7 @@
                   "fieldDefaultValue": 16777216,
                   "fieldFlag": "ruler-storage.cache.redis.max-item-size",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13934,7 +14044,7 @@
                   "fieldDefaultValue": 50,
                   "fieldFlag": "ruler-storage.cache.redis.max-async-concurrency",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13945,7 +14055,7 @@
                   "fieldDefaultValue": 25000,
                   "fieldFlag": "ruler-storage.cache.redis.max-async-buffer-size",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13956,7 +14066,7 @@
                   "fieldDefaultValue": 100,
                   "fieldFlag": "ruler-storage.cache.redis.max-get-multi-concurrency",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13967,7 +14077,7 @@
                   "fieldDefaultValue": 100,
                   "fieldFlag": "ruler-storage.cache.redis.max-get-multi-batch-size",
                   "fieldType": "int",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13978,7 +14088,7 @@
                   "fieldDefaultValue": false,
                   "fieldFlag": "ruler-storage.cache.redis.tls-enabled",
                   "fieldType": "boolean",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -13989,7 +14099,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler-storage.cache.redis.tls-cert-path",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -14000,7 +14110,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler-storage.cache.redis.tls-key-path",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -14011,7 +14121,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler-storage.cache.redis.tls-ca-path",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -14022,7 +14132,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler-storage.cache.redis.tls-server-name",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -14033,7 +14143,7 @@
                   "fieldDefaultValue": false,
                   "fieldFlag": "ruler-storage.cache.redis.tls-insecure-skip-verify",
                   "fieldType": "boolean",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -14044,7 +14154,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler-storage.cache.redis.tls-cipher-suites",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 },
                 {
                   "kind": "field",
@@ -14055,7 +14165,7 @@
                   "fieldDefaultValue": "",
                   "fieldFlag": "ruler-storage.cache.redis.tls-min-version",
                   "fieldType": "string",
-                  "fieldCategory": "advanced"
+                  "fieldCategory": "deprecated"
                 }
               ],
               "fieldValue": null,
@@ -14677,7 +14787,7 @@
               "kind": "field",
               "name": "grpc_compression",
               "required": false,
-              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy' and '' (disable compression)",
+              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy', 's2' and '' (disable compression)",
               "fieldValue": null,
               "fieldDefaultValue": "",
               "fieldFlag": "alertmanager.alertmanager-client.grpc-compression",
@@ -14933,7 +15043,7 @@
           "kind": "field",
           "name": "utf8_strict_mode",
           "required": false,
-          "desc": "Enable UTF-8 strict mode. Allows UTF-8 characters in the matchers for routes and inhibition rules, in silences, and in the labels for alerts. It is recommended that all tenants run the `migrate-utf8` command in mimirtool before enabling this mode. Otherwise, some tenant configurations might fail to load. To identify tenants with incompatible configurations, search Mimir server logs for lines containing `Alertmanager is moving to a new parser for labels and matchers, and this input is incompatible`. To find tenant configurations that are valid but contain ambiguous matchers, search for log lines containing `Matchers input has disagreement`. Each log line includes the invalid input, a suggestion on how to fix the input (excluding ambiguous matchers, as these require manual correction), and the ID of the affected tenant. You must run Mimir with debug-level logging enabled. Otherwise, these lines aren't logged. For more information, refer to https://prometheus.io/docs/alerting/latest/configuration/#label-matchers. Enabling and then disabling UTF-8 strict mode can break existing Alertmanager configurations if tenants added UTF-8 characters to their Alertmanager configuration while it was enabled.",
+          "desc": "Enable UTF-8 strict mode. Allows UTF-8 characters in the matchers for routes and inhibition rules, in silences, and in the labels for alerts. It is recommended that all tenants run the `migrate-utf8` command in mimirtool before enabling this mode. Otherwise, some tenant configurations might fail to load. For more information, refer to [Enable UTF-8](https://grafana.com/docs/mimir/\u003cMIMIR_VERSION\u003e/references/architecture/components/alertmanager/#enable-utf-8). Enabling and then disabling UTF-8 strict mode can break existing Alertmanager configurations if tenants added UTF-8 characters to their Alertmanager configuration while it was enabled.",
           "fieldValue": null,
           "fieldDefaultValue": false,
           "fieldFlag": "alertmanager.utf8-strict-mode-enabled",
@@ -16204,7 +16314,7 @@
           "kind": "field",
           "name": "prioritize_query_components",
           "required": false,
-          "desc": "When enabled, the query scheduler primarily prioritizes dequeuing fairly from queue components and secondarily prioritizes dequeuing fairly across tenants. When disabled, the query scheduler primarily prioritizes tenant fairness. You must enable the `query-scheduler.use-multi-algorithm-query-queue` setting to use this flag.",
+          "desc": "When enabled, the query scheduler primarily prioritizes dequeuing fairly from queue components and secondarily prioritizes dequeuing fairly across tenants. When disabled, the query scheduler primarily prioritizes tenant fairness.",
           "fieldValue": null,
           "fieldDefaultValue": false,
           "fieldFlag": "query-scheduler.prioritize-query-components",
@@ -16254,7 +16364,7 @@
               "kind": "field",
               "name": "grpc_compression",
               "required": false,
-              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy' and '' (disable compression)",
+              "desc": "Use compression when sending messages. Supported values are: 'gzip', 'snappy', 's2' and '' (disable compression)",
               "fieldValue": null,
               "fieldDefaultValue": "",
               "fieldFlag": "query-scheduler.grpc-client-config.grpc-compression",
